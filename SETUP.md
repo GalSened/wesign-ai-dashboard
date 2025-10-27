@@ -2,19 +2,25 @@
 
 ## ⚡ Fast Start (5 minutes)
 
-### 1. Configure OpenAI API Key
+### 1. Configure API Keys and Credentials
 
 ```bash
 cd ~/wesign-ai-dashboard/orchestrator
 cp .env.example .env
 ```
 
-Edit `.env` and replace `your-openai-api-key-here` with your actual OpenAI API key:
+Edit `.env` and add your credentials:
 
 ```bash
 OPENAI_API_KEY=sk-your-actual-key-here
 WESIGN_MCP_URL=http://localhost:3000
+
+# WeSign auto-login credentials
+WESIGN_EMAIL=your-email@example.com
+WESIGN_PASSWORD=your-password
 ```
+
+**Note:** The orchestrator will automatically login to WeSign on startup using these credentials, so the AI assistant has authenticated access when you open it from the dashboard.
 
 ### 2. Start Everything
 

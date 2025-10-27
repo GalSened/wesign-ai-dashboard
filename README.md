@@ -76,12 +76,18 @@ cd ~/wesign-ai-dashboard/orchestrator
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Edit `.env` and add your credentials:
 
 ```bash
 OPENAI_API_KEY=your-openai-api-key-here
 WESIGN_MCP_URL=http://localhost:3000
+
+# WeSign auto-login (recommended)
+WESIGN_EMAIL=your-email@example.com
+WESIGN_PASSWORD=your-password
 ```
+
+**Auto-Login:** The orchestrator automatically logs in to WeSign on startup, ensuring the AI assistant has authenticated access when opened from your dashboard.
 
 ### 3. Make Scripts Executable
 
