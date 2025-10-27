@@ -95,6 +95,31 @@ async def startup_event():
         logger.error(f"❌ Failed to connect to MCP server: {e}")
         logger.warning("Continuing without MCP connection...")
 
+    # Auto-login to WeSign if credentials provided
+    wesign_email = os.getenv("WESIGN_EMAIL")
+    wesign_password = os.getenv("WESIGN_PASSWORD")
+
+    if wesign_email and wesign_password:
+        logger.info(f"🔐 Attempting auto-login to WeSign as {wesign_email}...")
+        try:
+            login_result = await mcp_client.login(
+                email=wesign_email,
+                password=wesign_password,
+                persistent=True
+            )
+            if login_result.get("success"):
+                logger.info("✅ Successfully logged in to WeSign")
+                # Get user info
+                user_info = await mcp_client.get_user_info()
+                if user_info.get("success"):
+                    logger.info(f"👤 Logged in as: {user_info.get('data', {}).get('name', 'User')}")
+            else:
+                logger.warning(f"⚠️ WeSign login failed: {login_result.get('error')}")
+        except Exception as e:
+            logger.error(f"❌ Auto-login error: {e}")
+    else:
+        logger.info("ℹ️ No WeSign credentials configured - skipping auto-login")
+
     # Initialize orchestrator
     logger.info("Initializing AutoGen agents...")
     orchestrator = WeSignOrchestrator(mcp_client)
