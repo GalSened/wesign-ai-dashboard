@@ -29,9 +29,10 @@ class MCPClient:
             Dict with tools list and count
         """
         try:
-            response = await self.client.get(f"{self.server_url}/tools")
+            response = await self.client.get(f"{self.server_url}/")
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            return {"success": True, "count": data.get("tools_count", 0), "data": data}
         except Exception as e:
             logger.error(f"Failed to list tools: {e}")
             return {"success": False, "tools": [], "count": 0}
@@ -102,7 +103,7 @@ class MCPClient:
 
     async def check_auth(self):
         """Check authentication status"""
-        return await self.execute_tool("wesign_check_auth_status")
+        return await self.execute_tool("wesign_check_auth")
 
     async def list_documents(self, offset: int = 0, limit: int = 50):
         """List user documents"""

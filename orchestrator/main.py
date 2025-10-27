@@ -13,6 +13,10 @@ import os
 import tempfile
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from orchestrator import WeSignOrchestrator
 from mcp_client import MCPClient
