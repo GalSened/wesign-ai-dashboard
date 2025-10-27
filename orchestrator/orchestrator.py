@@ -252,26 +252,118 @@ class WeSignOrchestrator:
             assistant: Assistant agent
             user_proxy: User proxy agent
         """
-        # Register MCP tool execution wrapper
+        import asyncio
+
+        # Create synchronous wrapper for async MCP calls
+        def sync_mcp_call(coro):
+            """Helper to run async calls synchronously"""
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            return loop.run_until_complete(coro)
+
+        # Register individual WeSign tools
         @user_proxy.register_for_execution()
-        @assistant.register_for_llm(description="Execute WeSign MCP tool")
-        async def execute_wesign_tool(
-            tool_name: str,
-            parameters: Optional[Dict[str, Any]] = None
+        @assistant.register_for_llm(description="Login to WeSign")
+        def wesign_login(email: str, password: str, persistent: bool = False) -> Dict[str, Any]:
+            """Login to WeSign"""
+            logger.info(f"🔐 Agent calling: wesign_login")
+            return sync_mcp_call(self.mcp_client.login(email, password, persistent))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Check WeSign authentication status")
+        def wesign_check_auth() -> Dict[str, Any]:
+            """Check authentication status"""
+            logger.info(f"🔧 Agent calling: wesign_check_auth")
+            return sync_mcp_call(self.mcp_client.check_auth())
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="List WeSign documents")
+        def wesign_list_documents(offset: int = 0, limit: int = 50) -> Dict[str, Any]:
+            """List user documents"""
+            logger.info(f"📄 Agent calling: wesign_list_documents")
+            return sync_mcp_call(self.mcp_client.list_documents(offset, limit))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Upload document to WeSign")
+        def wesign_upload_document(file_path: str, name: str = None) -> Dict[str, Any]:
+            """Upload a document"""
+            logger.info(f"📤 Agent calling: wesign_upload_document")
+            return sync_mcp_call(self.mcp_client.upload_document(file_path, name))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Create self-signing document")
+        def wesign_create_self_sign(file_path: str, name: str = None) -> Dict[str, Any]:
+            """Create self-signing document"""
+            logger.info(f"✍️ Agent calling: wesign_create_self_sign")
+            return sync_mcp_call(self.mcp_client.create_self_sign(file_path, name))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Add signature fields to document")
+        def wesign_add_signature_fields(
+            document_collection_id: str,
+            document_id: str,
+            fields: list
         ) -> Dict[str, Any]:
-            """
-            Execute a WeSign MCP tool
+            """Add signature fields"""
+            logger.info(f"📝 Agent calling: wesign_add_signature_fields")
+            return sync_mcp_call(self.mcp_client.add_signature_fields(
+                document_collection_id, document_id, fields
+            ))
 
-            Args:
-                tool_name: Name of the tool to execute
-                parameters: Tool parameters
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Complete signing process")
+        def wesign_complete_signing(
+            document_collection_id: str,
+            document_id: str,
+            save_path: str = None
+        ) -> Dict[str, Any]:
+            """Complete signing process"""
+            logger.info(f"✅ Agent calling: wesign_complete_signing")
+            return sync_mcp_call(self.mcp_client.complete_signing(
+                document_collection_id, document_id, save_path
+            ))
 
-            Returns:
-                Tool execution result
-            """
-            logger.info(f"🔧 Agent executing tool: {tool_name}")
-            result = await self.mcp_client.execute_tool(tool_name, parameters)
-            return result
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="List available templates")
+        def wesign_list_templates(offset: int = 0, limit: int = 50) -> Dict[str, Any]:
+            """List templates"""
+            logger.info(f"📋 Agent calling: wesign_list_templates")
+            return sync_mcp_call(self.mcp_client.list_templates(offset, limit))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Create new template")
+        def wesign_create_template(
+            file_path: str,
+            name: str,
+            description: str = None
+        ) -> Dict[str, Any]:
+            """Create a template"""
+            logger.info(f"➕ Agent calling: wesign_create_template")
+            return sync_mcp_call(self.mcp_client.create_template(file_path, name, description))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Use template to create document")
+        def wesign_use_template(template_id: str, document_name: str) -> Dict[str, Any]:
+            """Create document from template"""
+            logger.info(f"📄 Agent calling: wesign_use_template")
+            return sync_mcp_call(self.mcp_client.use_template(template_id, document_name))
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Get current user information")
+        def wesign_get_user_info() -> Dict[str, Any]:
+            """Get user information"""
+            logger.info(f"👤 Agent calling: wesign_get_user_info")
+            return sync_mcp_call(self.mcp_client.get_user_info())
+
+        @user_proxy.register_for_execution()
+        @assistant.register_for_llm(description="Get document information")
+        def wesign_get_document_info(document_collection_id: str) -> Dict[str, Any]:
+            """Get document information"""
+            logger.info(f"ℹ️ Agent calling: wesign_get_document_info")
+            return sync_mcp_call(self.mcp_client.get_document_info(document_collection_id))
 
     def _extract_response(self, chat_result) -> str:
         """
