@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeSign Dashboard - AI Assistant</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- OpenAI ChatKit -->
+    <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" async></script>
 </head>
 <body>
     <!-- Main Dashboard -->
@@ -104,66 +106,19 @@
                     <span class="ai-icon-large">🤖</span>
                     <div>
                         <h3>WeSign AI Assistant</h3>
-                        <p class="header-subtitle">Powered by AutoGen & MCP</p>
+                        <p class="header-subtitle">Powered by ChatKit & AutoGen</p>
                     </div>
                 </div>
                 <button class="close-btn" id="closeAIAssistant">✕</button>
             </div>
 
-            <!-- Chat Messages -->
-            <div class="chat-container" id="chatContainer">
-                <div class="message assistant-message">
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <div class="message-text">
-                            Hello! I'm your WeSign AI Assistant. I can help you with:
-                            <ul>
-                                <li>📄 Upload and manage documents</li>
-                                <li>✍️ Create and complete signature workflows</li>
-                                <li>📋 Manage templates</li>
-                                <li>👥 Handle multi-party signing</li>
-                                <li>📊 Get document status and information</li>
-                            </ul>
-                            How can I help you today?
-                        </div>
-                        <div class="message-time">Just now</div>
-                    </div>
+            <!-- ChatKit Component Container -->
+            <div class="chatkit-container" id="chatkitContainer">
+                <div class="chatkit-loading">
+                    <div class="loading-spinner"></div>
+                    <p>Initializing AI Assistant...</p>
                 </div>
-            </div>
-
-            <!-- Input Area -->
-            <div class="input-container">
-                <!-- File attachments preview -->
-                <div class="attached-files" id="attachedFiles"></div>
-
-                <div class="input-row">
-                    <!-- File upload button -->
-                    <label class="file-upload-btn" title="Upload file">
-                        📁
-                        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" style="display: none;">
-                    </label>
-
-                    <!-- Message input -->
-                    <textarea
-                        id="messageInput"
-                        class="message-input"
-                        placeholder="Ask me anything about documents, signatures, templates..."
-                        rows="2"
-                    ></textarea>
-
-                    <!-- Send button -->
-                    <button class="send-btn" id="sendBtn">
-                        <span class="send-icon">▶</span>
-                    </button>
-                </div>
-
-                <!-- Loading indicator -->
-                <div class="loading-indicator" id="loadingIndicator">
-                    <div class="loading-dots">
-                        <span></span><span></span><span></span>
-                    </div>
-                    <span>AI is thinking...</span>
-                </div>
+                <!-- ChatKit web component will be inserted here -->
             </div>
         </div>
     </div>

@@ -10,20 +10,19 @@ const CONFIG = {
 const openAIBtn = document.getElementById('openAIAssistant');
 const closeAIBtn = document.getElementById('closeAIAssistant');
 const modal = document.getElementById('aiAssistantModal');
-const chatContainer = document.getElementById('chatContainer');
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-const fileInput = document.getElementById('fileInput');
-const attachedFiles = document.getElementById('attachedFiles');
-const loadingIndicator = document.getElementById('loadingIndicator');
+const chatkitContainer = document.getElementById('chatkitContainer');
 
 // State
-let conversationId = null;
-let selectedFiles = [];
-let isProcessing = false;
+let chatkitInstance = null;
+let sessionToken = null;
+let isInitialized = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('%c🤖 WeSign AI Assistant with ChatKit', 'font-size: 20px; font-weight: bold; color: #667eea;');
+    console.log('%cPowered by OpenAI ChatKit & AutoGen', 'font-size: 14px; color: #764ba2;');
+    console.log(`%cOrchestrator URL: ${CONFIG.orchestratorUrl}`, 'color: #3498db;');
+
     initEventListeners();
     checkOrchestratorConnection();
 });
@@ -33,23 +32,15 @@ function initEventListeners() {
     openAIBtn.addEventListener('click', openModal);
     closeAIBtn.addEventListener('click', closeModal);
     modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
-
-    // Input controls
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    // File upload
-    fileInput.addEventListener('change', handleFileSelect);
 }
 
-function openModal() {
+async function openModal() {
     modal.classList.add('active');
-    messageInput.focus();
+
+    // Initialize ChatKit on first open
+    if (!isInitialized) {
+        await initializeChatKit();
+    }
 }
 
 function closeModal() {
@@ -71,237 +62,164 @@ async function checkOrchestratorConnection() {
     }
 }
 
-// Handle file selection
-function handleFileSelect(event) {
-    const files = Array.from(event.target.files);
-
-    for (const file of files) {
-        // Check file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            addSystemMessage(`File "${file.name}" is too large. Maximum size is 10MB.`);
-            continue;
-        }
-
-        // Add to selected files
-        selectedFiles.push(file);
-
-        // Create file tag
-        const fileTag = document.createElement('div');
-        fileTag.className = 'file-tag';
-        fileTag.innerHTML = `
-            📄 ${file.name} (${formatFileSize(file.size)})
-            <button onclick="removeFile('${file.name}')">×</button>
-        `;
-        attachedFiles.appendChild(fileTag);
-    }
-
-    // Reset input
-    fileInput.value = '';
-}
-
-function removeFile(fileName) {
-    selectedFiles = selectedFiles.filter(f => f.name !== fileName);
-
-    // Remove from UI
-    const fileTags = attachedFiles.querySelectorAll('.file-tag');
-    fileTags.forEach(tag => {
-        if (tag.textContent.includes(fileName)) {
-            tag.remove();
-        }
-    });
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-}
-
-// Send message to AI assistant
-async function sendMessage() {
-    const message = messageInput.value.trim();
-
-    if (!message && selectedFiles.length === 0) {
-        return;
-    }
-
-    if (isProcessing) {
-        return;
-    }
-
-    isProcessing = true;
-    sendBtn.disabled = true;
-    loadingIndicator.classList.add('active');
-
-    // Add user message to chat
-    addMessage('user', message, selectedFiles.map(f => ({
-        name: f.name,
-        size: f.size,
-        type: f.type
-    })));
-
-    // Clear input
-    messageInput.value = '';
-    const filesInfo = [...selectedFiles];
-    selectedFiles = [];
-    attachedFiles.innerHTML = '';
-
+async function initializeChatKit() {
     try {
-        // Upload files first if any
-        const uploadedFiles = [];
-        for (const file of filesInfo) {
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
+        console.log('🔄 Initializing ChatKit...');
 
-                const uploadResponse = await fetch(`${CONFIG.orchestratorUrl}/api/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
+        // Show loading state
+        showLoadingState('Creating session...');
 
-                if (uploadResponse.ok) {
-                    const uploadResult = await uploadResponse.json();
-                    uploadedFiles.push({
-                        fileId: uploadResult.fileId,
-                        fileName: file.name,
-                        filePath: uploadResult.filePath
-                    });
-                } else {
-                    throw new Error(`Upload failed for ${file.name}`);
-                }
-            } catch (error) {
-                addSystemMessage(`Failed to upload ${file.name}: ${error.message}`);
-            }
-        }
-
-        // Send message to orchestrator
-        const response = await fetch(`${CONFIG.orchestratorUrl}/api/chat`, {
+        // Create session with orchestrator
+        const sessionResponse = await fetch(`${CONFIG.orchestratorUrl}/api/create-session`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                message: message,
-                context: {
-                    userId: CONFIG.userId,
-                    companyId: CONFIG.companyId,
-                    userName: CONFIG.userName,
-                    conversationId: conversationId
-                },
-                files: uploadedFiles
+                userId: CONFIG.userId,
+                companyId: CONFIG.companyId,
+                userName: CONFIG.userName
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!sessionResponse.ok) {
+            throw new Error(`Session creation failed: ${sessionResponse.statusText}`);
         }
 
-        const result = await response.json();
+        const sessionData = await sessionResponse.json();
+        sessionToken = sessionData.sessionToken;
 
-        // Update conversation ID
-        conversationId = result.conversationId;
+        console.log('✅ Session created:', sessionData.user.name);
 
-        // Add assistant response
-        addMessage('assistant', result.response, null, result.toolCalls);
+        // Show loading state
+        showLoadingState('Loading ChatKit...');
+
+        // Wait for ChatKit script to load
+        await waitForChatKit();
+
+        // Create ChatKit web component
+        const chatkit = document.createElement('openai-chatkit');
+
+        // Configure ChatKit with proper authentication
+        chatkit.setOptions({
+            api: {
+                async getClientSecret() {
+                    // Fetch client token from backend
+                    const response = await fetch(`${CONFIG.orchestratorUrl}/api/chatkit-client-token`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: CONFIG.userId,
+                            companyId: CONFIG.companyId,
+                            userName: CONFIG.userName
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to get client token: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    return data.client_secret;
+                }
+            },
+            theme: {
+                colorScheme: 'light',
+                color: {
+                    accent: {
+                        primary: '#667eea',
+                        level: 2
+                    }
+                },
+                radius: 'round',
+                density: 'normal',
+                typography: {
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif"
+                }
+            },
+            startScreen: {
+                greeting: `Hello ${CONFIG.userName}! I'm your WeSign AI Assistant. I can help you with:\n\n📄 Upload and manage documents\n✍️ Create and complete signature workflows\n📋 Manage templates\n👥 Handle multi-party signing\n📊 Get document status and information\n\nHow can I help you today?`
+            },
+            composer: {
+                placeholder: 'Ask me about documents, signatures, templates...'
+            }
+        });
+
+        // Add styles to make ChatKit fill container
+        chatkit.style.width = '100%';
+        chatkit.style.height = '100%';
+        chatkit.classList.add('wesign-chatkit');
+
+        // Clear loading state and add ChatKit
+        chatkitContainer.innerHTML = '';
+        chatkitContainer.appendChild(chatkit);
+
+        // Store reference
+        chatkitInstance = chatkit;
+        isInitialized = true;
+
+        console.log('✅ ChatKit initialized successfully');
+
+        // Add event listeners for ChatKit events
+        chatkit.addEventListener('message', (event) => {
+            console.log('💬 User message:', event.detail);
+        });
+
+        chatkit.addEventListener('response', (event) => {
+            console.log('🤖 Assistant response:', event.detail);
+        });
+
+        chatkit.addEventListener('error', (event) => {
+            console.error('❌ ChatKit error:', event.detail);
+            showError('An error occurred. Please try again.');
+        });
 
     } catch (error) {
-        console.error('Error sending message:', error);
-        addSystemMessage(`Error: ${error.message}. Make sure the orchestrator is running.`);
-    } finally {
-        isProcessing = false;
-        sendBtn.disabled = false;
-        loadingIndicator.classList.remove('active');
+        console.error('❌ Failed to initialize ChatKit:', error);
+        showError(`Failed to initialize AI Assistant: ${error.message}`);
     }
 }
 
-// Add message to chat
-function addMessage(role, content, files = null, toolCalls = null) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}-message`;
+function waitForChatKit() {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max
 
-    const avatar = role === 'assistant' ? '🤖' : '👤';
+        const checkInterval = setInterval(() => {
+            attempts++;
 
-    let filesHtml = '';
-    if (files && files.length > 0) {
-        filesHtml = '<div style="margin-top: 0.5rem;">' +
-            files.map(f => `<div style="font-size: 0.85rem; color: #666;">📄 ${f.name}</div>`).join('') +
-            '</div>';
-    }
-
-    let toolCallsHtml = '';
-    if (toolCalls && toolCalls.length > 0) {
-        toolCallsHtml = `
-            <div class="tool-calls">
-                <strong>🔧 Actions Performed:</strong>
-                <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
-                    ${toolCalls.map(tc => `
-                        <li>${tc.tool}: ${tc.action}</li>
-                    `).join('')}
-                </ul>
-            </div>
-        `;
-    }
-
-    messageDiv.innerHTML = `
-        <div class="message-avatar">${avatar}</div>
-        <div class="message-content">
-            <div class="message-text">
-                ${escapeHtml(content)}
-                ${filesHtml}
-            </div>
-            ${toolCallsHtml}
-            <div class="message-time">${formatTime(new Date())}</div>
-        </div>
-    `;
-
-    chatContainer.appendChild(messageDiv);
-    scrollToBottom();
-}
-
-// Add system message
-function addSystemMessage(content) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message assistant-message';
-    messageDiv.innerHTML = `
-        <div class="message-avatar">ℹ️</div>
-        <div class="message-content">
-            <div class="message-text" style="background: #fff3cd; color: #856404;">
-                ${escapeHtml(content)}
-            </div>
-            <div class="message-time">${formatTime(new Date())}</div>
-        </div>
-    `;
-    chatContainer.appendChild(messageDiv);
-    scrollToBottom();
-}
-
-// Utility functions
-function scrollToBottom() {
-    setTimeout(() => {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }, 100);
-}
-
-function formatTime(date) {
-    return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
+            if (typeof customElements !== 'undefined' && customElements.get('openai-chatkit')) {
+                clearInterval(checkInterval);
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                reject(new Error('ChatKit script failed to load'));
+            }
+        }, 100);
     });
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function showLoadingState(message) {
+    chatkitContainer.innerHTML = `
+        <div class="chatkit-loading">
+            <div class="loading-spinner"></div>
+            <p>${message}</p>
+        </div>
+    `;
 }
 
-// Make removeFile available globally
-window.removeFile = removeFile;
+function showError(message) {
+    chatkitContainer.innerHTML = `
+        <div class="chatkit-error">
+            <div class="error-icon">⚠️</div>
+            <p>${message}</p>
+            <button onclick="location.reload()" class="retry-btn">Retry</button>
+        </div>
+    `;
+}
 
 // Console startup message
-console.log('%c🤖 WeSign AI Assistant', 'font-size: 20px; font-weight: bold; color: #667eea;');
-console.log('%cPowered by AutoGen & MCP', 'font-size: 14px; color: #764ba2;');
-console.log(`%cOrchestrator URL: ${CONFIG.orchestratorUrl}`, 'color: #3498db;');
-console.log('%cMake sure the Python orchestrator is running!', 'color: #e74c3c; font-weight: bold;');
+console.log('%c⚡ Ready to assist!', 'font-size: 16px; color: #4ade80; font-weight: bold;');
+console.log('%cClick the AI Assistant button to get started', 'color: #667eea;');

@@ -159,10 +159,13 @@ class WeSignOrchestrator:
             logger.info(f"🎯 Selected agent: {agent_choice}")
 
             # Create user proxy for this conversation
+            # Set max_consecutive_auto_reply=0 to prevent UserProxy from auto-replying
+            # This ensures single-turn conversation: user asks, agent responds, done
             user_proxy = UserProxyAgent(
                 name="UserProxy",
                 human_input_mode="NEVER",
-                max_consecutive_auto_reply=10,
+                max_consecutive_auto_reply=0,  # No auto-replies to prevent empty message loops
+                is_termination_msg=lambda x: (x.get("content") or "").strip() == "" or "TERMINATE" in (x.get("content") or ""),
                 code_execution_config=False,
             )
 
@@ -257,12 +260,17 @@ class WeSignOrchestrator:
         # Create synchronous wrapper for async MCP calls
         def sync_mcp_call(coro):
             """Helper to run async calls synchronously"""
+            # Use asyncio.run() to create a fresh event loop
+            # This prevents "event loop already running" errors
             try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coro)
+                return asyncio.run(coro)
+            except RuntimeError as e:
+                # Fallback: use run_in_executor for nested async contexts
+                logger.warning(f"asyncio.run() failed, using thread executor: {e}")
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, coro)
+                    return future.result()
 
         # Register individual WeSign tools
         @user_proxy.register_for_execution()
