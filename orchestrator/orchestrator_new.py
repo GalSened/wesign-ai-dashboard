@@ -13,7 +13,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import TextMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
+from autogen_ext.tools.mcp import StdioServerParams, StreamableHttpServerParams, mcp_server_tools
 from autogen_core import CancellationToken
 
 logger = logging.getLogger(__name__)
@@ -55,16 +55,19 @@ class WeSignOrchestrator:
         """Initialize MCP servers and load tools"""
         try:
             # WeSign MCP Server (HTTP-based)
-            # Note: WeSign MCP currently has HTTP 500 issues, but we'll keep it for when it's fixed
             logger.info("🔧 Initializing WeSign MCP server...")
 
-            # For now, we'll use a placeholder since WeSign MCP has HTTP issues
-            # When the MCP server is fixed, we can add:
-            # wesign_params = HttpServerParams(url="http://localhost:3000")
-            # self.mcp_tools["wesign"] = await mcp_server_tools(wesign_params)
+            wesign_url = os.getenv("WESIGN_MCP_URL", "http://localhost:3000")
+            logger.info(f"📡 Connecting to WeSign MCP at: {wesign_url}")
 
-            self.mcp_tools["wesign"] = []  # Placeholder until MCP server is fixed
-            logger.info(f"📋 WeSign MCP: {len(self.mcp_tools['wesign'])} tools (server has issues)")
+            try:
+                wesign_params = StreamableHttpServerParams(url=wesign_url)
+                self.mcp_tools["wesign"] = await mcp_server_tools(wesign_params)
+                logger.info(f"✅ WeSign MCP: {len(self.mcp_tools['wesign'])} tools available")
+            except Exception as wesign_error:
+                logger.error(f"❌ WeSign MCP connection failed: {wesign_error}")
+                logger.warning("⚠️  WeSign MCP unavailable - continuing with 0 tools")
+                self.mcp_tools["wesign"] = []
 
             # FileSystem MCP Server (stdio-based)
             logger.info("🗂️  Initializing FileSystem MCP server...")
@@ -338,6 +341,29 @@ class WeSignOrchestrator:
                 # Handle dict
                 if isinstance(last_message, dict) and 'content' in last_message:
                     return last_message['content']
+
+                # Handle ToolCallSummaryMessage or other message types with content attribute
+                if hasattr(last_message, 'content'):
+                    content = last_message.content
+                    # If content is a JSON string, parse it and extract text
+                    if isinstance(content, str):
+                        try:
+                            import json
+                            parsed_content = json.loads(content)
+                            # Extract text from parsed content
+                            if isinstance(parsed_content, list):
+                                texts = []
+                                for item in parsed_content:
+                                    if isinstance(item, dict) and 'text' in item:
+                                        texts.append(item['text'])
+                                if texts:
+                                    return '\n'.join(texts)
+                            elif isinstance(parsed_content, dict) and 'text' in parsed_content:
+                                return parsed_content['text']
+                        except json.JSONDecodeError:
+                            # Not JSON, return as is
+                            return content
+                    return str(content)
 
                 # Fallback to string
                 return str(last_message)
