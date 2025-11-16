@@ -481,7 +481,10 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
 
         # Contact-related keywords (English + Hebrew)
         # Hebrew: איש קשר (contact), אנשי קשר (contacts), ספר כתובות (address book), קבוצה (group)
-        contact_keywords = ["contact", "contacts", "address book", "create contact", "איש קשר", "אנשי קשר", "ספר כתובות", "קבוצה", "קבוצת"]
+        # Including versions with definite article (הקשר vs קשר)
+        contact_keywords = ["contact", "contacts", "address book", "create contact",
+                            "איש קשר", "איש הקשר", "אנשי קשר", "אנשי הקשר",
+                            "ספר כתובות", "ספר הכתובות", "קבוצה", "קבוצת", "הקבוצה"]
         logger.info(f"🔍 Checking contact keywords: {contact_keywords}")
         contact_match = any(word in message_lower or word in message for word in contact_keywords)
         logger.info(f"🔍 Contact keyword match: {contact_match}")
