@@ -19,18 +19,34 @@ import secrets
 from openai import OpenAI
 
 # Load environment variables from .env file
-load_dotenv()
+# override=True ensures .env values take precedence over existing environment variables
+load_dotenv(override=True)
+
+# CRITICAL FIX: Explicitly set OPENAI_API_KEY in os.environ for Uvicorn worker processes
+# Uvicorn's auto-reload mode spawns worker processes that inherit the parent environment
+# We must explicitly set the environment variable AFTER load_dotenv() to ensure workers get it
+api_key_from_dotenv = os.getenv("OPENAI_API_KEY")
+if api_key_from_dotenv:
+    os.environ["OPENAI_API_KEY"] = api_key_from_dotenv
+    print(f"[STARTUP] Explicitly set OPENAI_API_KEY in environment: {api_key_from_dotenv[:20]}...")
 
 from orchestrator_new import WeSignOrchestrator
 from chatkit_store import InMemoryStore
 from chatkit_server import WeSignChatKitServer
 
-# Configure logging
+# Configure logging with DEBUG level to capture all details
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('orchestrator.log')
+    ]
 )
 logger = logging.getLogger(__name__)
+logger.info("=" * 100)
+logger.info("🚀 MAIN.PY STARTING - IMPORTS orchestrator_new.py")
+logger.info("=" * 100)
 
 # Initialize FastAPI
 app = FastAPI(
@@ -124,14 +140,17 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
-    return {
-        "service": "WeSign AI Assistant Orchestrator",
-        "status": "healthy",
-        "version": "2.0.0-native-mcp",
-        "timestamp": datetime.utcnow().isoformat(),
-        "mcp_integration": "native_autogen"
-    }
+    """Root endpoint - redirect to login"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/login")
+
+@app.get("/login")
+async def serve_login():
+    """Serve WeSign login page"""
+    login_path = Path(__file__).parent.parent / "frontend" / "login.html"
+    if login_path.exists():
+        return FileResponse(login_path)
+    raise HTTPException(status_code=404, detail="Login page not found")
 
 @app.get("/health")
 async def health_check():
@@ -205,6 +224,75 @@ async def upload_file(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/wesign-login")
+async def wesign_login(request: Request):
+    """
+    WeSign authentication endpoint
+
+    Authenticates user with WeSign via MCP server and returns auth token
+    """
+    try:
+        data = await request.json()
+
+        email = data.get("email")
+        password = data.get("password")
+        persistent = data.get("persistent", False)
+
+        if not email or not password:
+            raise HTTPException(status_code=400, detail="Email and password required")
+
+        logger.info(f"🔐 WeSign login attempt for: {email}")
+
+        # Call WeSign MCP server login
+        wesign_url = os.getenv("WESIGN_MCP_URL", "http://localhost:3000")
+        login_response = await orchestrator.wesign_client._http_client.post(
+            f"{wesign_url}/execute",
+            json={
+                "tool": "wesign_login",
+                "parameters": {
+                    "email": email,
+                    "password": password,
+                    "persistent": persistent
+                }
+            }
+        )
+
+        login_data = login_response.json()
+
+        if not login_data.get("success"):
+            error_msg = login_data.get("error", "Login failed")
+            logger.error(f"❌ WeSign login failed: {error_msg}")
+            raise HTTPException(status_code=401, detail=error_msg)
+
+        # Generate auth token for our session
+        auth_token = secrets.token_urlsafe(32)
+
+        # Store auth session
+        session_tokens[auth_token] = {
+            "email": email,
+            "user_name": email.split('@')[0],  # Use email prefix as name
+            "authenticated": True,
+            "wesign_session": login_data.get("data"),
+            "created_at": datetime.utcnow().isoformat()
+        }
+
+        logger.info(f"✅ WeSign login successful for {email}")
+
+        return {
+            "success": True,
+            "authToken": auth_token,
+            "user": {
+                "email": email,
+                "name": email.split('@')[0]
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Login error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -572,8 +660,8 @@ async def speech_to_text(file: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
 
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", 8000))
+    host = "0.0.0.0"  # Hardcoded for testing
+    port = 8002  # Hardcoded to port 8002 for testing
 
     uvicorn.run(
         "main:app",

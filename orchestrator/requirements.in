@@ -1,0 +1,25 @@
+# WeSign AI Dashboard Orchestrator Dependencies
+# This is the source file for pip-compile to generate requirements.txt
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart
+
+# Data Models
+pydantic>=2.0.0
+
+# HTTP Client
+httpx
+
+# Environment Management
+python-dotenv
+
+# OpenAI & ChatKit
+openai>=2.0.0
+openai-chatkit
+
+# AutoGen with MCP Support - CRITICAL: All must be same version
+autogen-ext[mcp]==0.7.5
+autogen-agentchat==0.7.5
+autogen-core==0.7.5
