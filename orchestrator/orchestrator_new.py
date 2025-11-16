@@ -5,18 +5,20 @@ Uses custom MCPClient for HTTP REST API communication with WeSign MCP server
 
 import os
 import logging
+import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import TextMessage
+from autogen_agentchat.messages import TextMessage, ToolCallRequestEvent, ToolCallExecutionEvent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core import CancellationToken
 
 # Import our custom MCP client
 from mcp_client import create_wesign_tools
+from forced_tool_model_client import ForcedToolModelClient
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +39,23 @@ class WeSignOrchestrator:
         logger.info(f"🔑 API Key type: {type(api_key)}, length: {len(api_key) if api_key else 0}")
         logger.info(f"🔑 Full key (masked): {api_key[:10]}...{api_key[-10:] if api_key and len(api_key) > 20 else 'TOO_SHORT'}")
 
-        self.model_client = OpenAIChatCompletionClient(
+        self.model_client = ForcedToolModelClient(
             model="gpt-4-turbo-preview",
             api_key=api_key,
             temperature=0.7,
+            extra_create_args={"tool_choice": "required"}  # Force tool calling - prevents hallucinated responses
+        )
+
+
+        # Create separate model client for formatter (without forcing tools)
+        self.formatter_model_client = OpenAIChatCompletionClient(
+            model="gpt-4-turbo-preview",
+            api_key=api_key,
+            temperature=0.7
         )
 
         logger.info(f"✅ Model client created successfully")
+
 
     async def initialize(self):
         """Initialize all agents and MCP servers"""
@@ -64,7 +76,12 @@ class WeSignOrchestrator:
         await self._create_contact_agent()
         await self._create_admin_agent()
 
+
+        # Create formatter agent (without tools) for reflection step
+        await self._create_formatter_agent()
+
         total_tools = sum(len(tools) for tools in self.mcp_tools.values())
+
         logger.info(f"✅ Initialized {len(self.agents)} agents with {total_tools} WeSign tools")
 
     async def _init_mcp_servers(self):
@@ -97,27 +114,15 @@ class WeSignOrchestrator:
             description="Specialist in document management for WeSign",
             system_message="""You are a document management specialist for WeSign.
 
-            IMPORTANT INSTRUCTIONS:
-            1. ALWAYS respond in the SAME LANGUAGE as the user's question
-               - If user asks in Hebrew, respond in Hebrew
-               - If user asks in English, respond in English
+⚠️ CRITICAL: You MUST call wesign_list_documents or other document tools FIRST. DO NOT answer without calling a tool.
 
-            2. Format responses clearly and naturally:
-               - Present documents as a readable list, NOT as JSON
-               - Use clear formatting with bullet points or numbers
-               - Keep responses concise and user-friendly
-
-            3. After providing information, ALWAYS suggest helpful next steps
-
-            Your responsibilities:
-            - Upload documents to WeSign
-            - List and search user documents
-            - Retrieve document information
-            - Manage document collections
-
-            When users ask about documents, provide clear information and help them manage their documents.
-            Always confirm actions before executing them.
-            """,
+After getting tool results, format them clearly:
+- Use 📄 emoji headers and status (✅ ⏳ ❌)
+- Respond in the SAME language as user's question (English or Hebrew)
+- Show max 10 items, say "and X more..." if there are more
+- NO raw JSON - make it readable
+- End with "What would you like to do next?" and suggest 2-3 actions
+""",
             model_client=self.model_client,
             tools=tools,
         )
@@ -165,39 +170,15 @@ class WeSignOrchestrator:
             description="Specialist in template management for WeSign",
             system_message="""You are a template management specialist for WeSign.
 
-            IMPORTANT INSTRUCTIONS:
-            1. ALWAYS respond in the SAME LANGUAGE as the user's question
-               - If user asks in Hebrew, respond in Hebrew
-               - If user asks in English, respond in English
+⚠️ CRITICAL: You MUST call wesign_list_templates or other template tools FIRST. DO NOT answer without calling a tool.
 
-            2. Format responses clearly and naturally:
-               - Present templates as a numbered list, NOT as JSON
-               - Use clear formatting with bullet points or numbers
-               - Keep responses concise and user-friendly
-
-            3. After providing information, ALWAYS suggest helpful next steps:
-               - What actions the user can take
-               - Related features they might want to use
-               - How to accomplish their goal
-
-            Your responsibilities:
-            - List available templates in an organized, readable format
-            - Create new templates from documents
-            - Use templates to create documents
-            - Guide users on best practices for template usage
-
-            Example Hebrew response format:
-            מצאתי 50 תבניות במערכת שלך:
-
-            1. תבנית 1
-            2. תבנית 2
-            3. תבנית 3
-
-            מה תרצה לעשות הלאה?
-            - לצפות בפרטי תבנית מסוימת
-            - ליצור מסמך חדש מתבנית
-            - להעלות תבנית חדשה
-            """,
+After getting tool results, format them clearly:
+- Use 📋 emoji headers
+- Respond in the SAME language as user's question (English or Hebrew)
+- Show max 10 items, say "and X more..." if there are more
+- NO raw JSON - make it readable
+- End with "What would you like to do next?" and suggest 2-3 actions
+""",
             model_client=self.model_client,
             tools=tools,
         )
@@ -211,43 +192,15 @@ class WeSignOrchestrator:
             description="Specialist in contact and address book management for WeSign",
             system_message="""You are a contact management specialist for WeSign.
 
-            IMPORTANT INSTRUCTIONS:
-            1. ALWAYS respond in the SAME LANGUAGE as the user's question
-               - If user asks in Hebrew, respond in Hebrew
-               - If user asks in English, respond in English
+⚠️ CRITICAL: You MUST call wesign_list_contacts or other contact tools FIRST. DO NOT answer without calling a tool.
 
-            2. Format responses clearly and naturally:
-               - Present contacts as a numbered list, NOT as JSON
-               - Show contact names, emails, and phone numbers in a readable format
-               - Use clear formatting with bullet points or numbers
-               - Keep responses concise and user-friendly
-
-            3. After providing information, ALWAYS suggest helpful next steps:
-               - What actions the user can take
-               - Related features they might want to use
-               - How to accomplish their goal
-
-            Your responsibilities:
-            - List and search contacts in an organized, readable format
-            - Create new contacts in the address book
-            - Update existing contact information
-            - Delete contacts when requested
-            - Manage contact groups
-            - Guide users on best practices for contact management
-
-            Example Hebrew response format:
-            מצאתי 15 אנשי קשר בספר הכתובות שלך:
-
-            1. ירון כהן - yaron@example.com - 050-1234567
-            2. שרה לוי - sarah@example.com - 052-9876543
-            3. דוד מזרחי - david@example.com - 054-5555555
-
-            מה תרצה לעשות הלאה?
-            - להוסיף איש קשר חדש
-            - לערוך פרטי איש קשר
-            - ליצור קבוצת אנשי קשר
-            - לשלוח מסמך לחתימה לאחד מאנשי הקשר
-            """,
+After getting tool results, format them clearly:
+- Use 👥 📧 📞 emoji headers
+- Respond in the SAME language as user's question (English or Hebrew)
+- Show max 10 items, say "and X more..." if there are more
+- NO raw JSON - make it readable
+- End with "What would you like to do next?" and suggest 2-3 actions
+""",
             model_client=self.model_client,
             tools=tools,
         )
@@ -257,15 +210,16 @@ class WeSignOrchestrator:
         self.agents["admin"] = AssistantAgent(
             name="AdminAgent",
             description="Administrative assistant for WeSign",
-            system_message="""You are an administrative assistant for WeSign.
-            Your responsibilities:
-            - Check authentication status
-            - Retrieve user information
-            - Handle login/logout operations
-            - Provide general help and guidance
+            system_message="""You are an administrative specialist for WeSign.
 
-            Be friendly and helpful. Guide users to the right specialist agent when needed.
-            """,
+⚠️ CRITICAL: You MUST call wesign_get_user_info or other admin tools FIRST. DO NOT answer without calling a tool.
+
+After getting tool results, format them clearly:
+- Use ⚙️ 👤 emoji headers
+- Respond in the SAME language as user's question (English or Hebrew)
+- NO raw JSON - format as clear labeled fields
+- End with "What would you like to do?" and suggest 2-3 actions
+""",
             model_client=self.model_client,
             tools=[],  # Admin agent doesn't need MCP tools
         )
@@ -290,6 +244,44 @@ class WeSignOrchestrator:
             """,
             model_client=self.model_client,
             tools=tools,
+        )
+
+
+    async def _create_formatter_agent(self):
+        """Agent specialized in formatting tool results - NO TOOLS"""
+        self.agents["formatter"] = AssistantAgent(
+            name="FormatterAgent",
+            description="Formats tool results into user-friendly responses",
+            system_message="""You are a response formatter for WeSign.
+
+Your ONLY job is to take raw data and format it beautifully for users.
+
+CRITICAL RULES:
+1. NEVER call tools - you only format existing data
+2. Respond in the SAME LANGUAGE as the user's question
+3. Use emojis and clear formatting (📄 📋 👥 ✅ ⏳ ❌)
+4. Present data in numbered lists or bullet points
+5. Keep responses concise and natural
+6. End with "What would you like to do next?" and suggest 2-3 actions
+7. NEVER show raw JSON or Python dicts
+
+Example format (Hebrew):
+📋 התבניות שלך (מציג 10 מתוך 45):
+
+1. תבנית חוזה העסקה
+   סטטוס: פעיל
+
+2. תבנית NDA
+   סטטוס: פעיל
+
+...ועוד 35 תבניות.
+
+מה תרצה לעשות הלאה?
+• ליצור תבנית חדשה
+• להשתמש בתבנית
+• לחפש תבניות""",
+            model_client=self.formatter_model_client,
+            tools=[],  # NO TOOLS - formatter only!
         )
 
     async def process_message(
@@ -389,7 +381,15 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
 
                 logger.info(f"🔄 Running reflection step to format response...")
                 logger.info(f"📝 Reflection prompt language: {'Hebrew (עברית)' if is_hebrew else 'English'}")
-                reflection_result: Response = await agent.run(
+                logger.info(f"🎨 Using FORMATTER AGENT (no tools) for reflection")
+
+                # Use formatter agent (without tools) for reflection
+                formatter_agent = self.agents.get("formatter")
+                if not formatter_agent:
+                    logger.warning("⚠️  Formatter agent not found, using original agent")
+                    formatter_agent = agent
+
+                reflection_result: Response = await formatter_agent.run(
                     task=reflection_prompt,
                     cancellation_token=cancellation_token
                 )
@@ -500,16 +500,25 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
 
         # Template-related keywords (English + Hebrew)
         # Hebrew: טמפלט (template), טמפלטים (templates), רשימת טמפלטים (template list)
-        if any(word in message_lower or word in message for word in ["template", "templates", "use template", "create template", "טמפלט", "טמפלטים"]):
-            logger.info(f"✅ AGENT SELECTED: template")
+        template_keywords = ["template", "templates", "use template", "create template", "תבנית", "תבניות", "התבנית", "התבניות", "טמפלט", "טמפלטים"]
+        if any(word in message_lower or word in message for word in template_keywords):
             return "template"
+
+        # Admin/User-related keywords (English + Hebrew)
+        # Hebrew: משתמש (user), חשבון (account), פרופיל (profile)
+        admin_keywords = ["user info", "my info", "my information", "user information", "account", "profile",
+                         "settings", "preferences", "משתמש", "חשבון", "פרופיל", "הגדרות"]
+        if any(word in message_lower or word in message for word in admin_keywords):
+            logger.info(f"✅ AGENT SELECTED: admin")
+            return "admin"
 
         # Document-related keywords (English + Hebrew)
         # Hebrew: מסמך (document), מסמכים (documents)
-        if any(word in message_lower or word in message for word in ["upload", "document", "documents", "pdf", "list documents", "מסמך", "מסמכים"]):
+        document_keywords = ["upload", "document", "documents", "pdf", "list documents",
+                            "מסמך", "מסמכים", "המסמך", "המסמכים"]
+        if any(word in message_lower or word in message for word in document_keywords):
             logger.info(f"✅ AGENT SELECTED: document")
             return "document"
-
         # Default to admin for general queries
         logger.info(f"✅ AGENT SELECTED: admin (default)")
         return "admin"
@@ -575,6 +584,9 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
         """
         Extract tool calls from AutoGen response
 
+        Updated to detect AutoGen 0.7.5's ToolCallRequestEvent message types
+        instead of looking for non-existent function_call attribute.
+
         Args:
             result: AutoGen Response object
 
@@ -590,19 +602,30 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
             if hasattr(result, 'messages'):
                 logger.debug(f"🔍 Number of messages: {len(result.messages)}")
                 for idx, message in enumerate(result.messages):
-                    logger.debug(f"🔍 Message {idx}: type={type(message)}, has function_call={hasattr(message, 'function_call')}")
+                    logger.debug(f"🔍 Message {idx}: type={type(message).__name__}")
 
-                    # Check for tool calls in message
-                    if hasattr(message, 'function_call'):
-                        func_call = message.function_call
-                        tool_name = func_call.get('name', 'unknown')
-                        logger.info(f"✅ Found tool call: {tool_name}")
-                        tool_calls.append({
-                            "tool": tool_name,
-                            "action": "execute",
-                            "parameters": func_call.get('arguments', {}),
-                            "result": "completed"
-                        })
+                    # Check if this is a ToolCallRequestEvent (AutoGen 0.7.5 format)
+                    if isinstance(message, ToolCallRequestEvent):
+                        # ToolCallRequestEvent contains the tool call information
+                        logger.debug(f"✅ Found ToolCallRequestEvent with content: {message.content}")
+
+                        # Extract tool calls from the event
+                        # message.content is a list of FunctionCall objects
+                        if hasattr(message, 'content') and isinstance(message.content, list):
+                            for tool_call in message.content:
+                                logger.debug(f"🔍 tool_call type: {type(tool_call)}")
+                                logger.debug(f"🔍 tool_call dir: {[attr for attr in dir(tool_call) if not attr.startswith('_')]}")
+                                logger.debug(f"🔍 tool_call hasattr name: {hasattr(tool_call, 'name')}")
+                                logger.debug(f"🔍 tool_call repr: {repr(tool_call)}")
+                                if hasattr(tool_call, 'name'):
+                                    tool_name = tool_call.name
+                                    logger.info(f"✅ Found tool call: {tool_name}")
+                                    tool_calls.append({
+                                        "tool": tool_name,
+                                        "action": "execute",
+                                        "parameters": json.loads(tool_call.arguments) if hasattr(tool_call, 'arguments') and tool_call.arguments else {},
+                                        "result": "completed"
+                                    })
 
             logger.debug(f"🔍 Total tool calls extracted: {len(tool_calls)}")
 
