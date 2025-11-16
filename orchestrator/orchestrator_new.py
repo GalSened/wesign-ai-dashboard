@@ -38,7 +38,7 @@ class WeSignOrchestrator:
         logger.info(f"🔑 Full key (masked): {api_key[:10]}...{api_key[-10:] if api_key and len(api_key) > 20 else 'TOO_SHORT'}")
 
         self.model_client = OpenAIChatCompletionClient(
-            model="gpt-4",
+            model="gpt-4-turbo-preview",
             api_key=api_key,
             temperature=0.7,
         )

@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeSign Dashboard - AI Assistant</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- OpenAI ChatKit -->
-    <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" async></script>
 </head>
 <body>
     <!-- Main Dashboard -->
@@ -94,33 +92,6 @@
                 </div>
             </div>
         </main>
-    </div>
-
-    <!-- AI Assistant Modal -->
-    <div class="ai-assistant-modal" id="aiAssistantModal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <!-- Header -->
-            <div class="modal-header">
-                <div class="header-title">
-                    <span class="ai-icon-large">🤖</span>
-                    <div>
-                        <h3>WeSign AI Assistant</h3>
-                        <p class="header-subtitle">Powered by ChatKit & AutoGen</p>
-                    </div>
-                </div>
-                <button class="close-btn" id="closeAIAssistant">✕</button>
-            </div>
-
-            <!-- ChatKit Component Container -->
-            <div class="chatkit-container" id="chatkitContainer">
-                <div class="chatkit-loading">
-                    <div class="loading-spinner"></div>
-                    <p>Initializing AI Assistant...</p>
-                </div>
-                <!-- ChatKit web component will be inserted here -->
-            </div>
-        </div>
     </div>
 
     <script src="app.js"></script>
