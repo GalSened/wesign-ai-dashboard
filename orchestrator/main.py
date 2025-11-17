@@ -168,7 +168,7 @@ async def health_check():
 @app.get("/chatkit")
 async def serve_ui():
     """Serve WeSign ChatKit UI (custom implementation with voice support)"""
-    ui_path = Path(__file__).parent.parent / "frontend" / "chatkit-custom.html"
+    ui_path = Path(__file__).parent.parent / "frontend" / "chatkit.html"
     if ui_path.exists():
         return FileResponse(ui_path)
     raise HTTPException(status_code=404, detail="ChatKit UI not found")
@@ -660,8 +660,11 @@ async def speech_to_text(file: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
 
-    host = "0.0.0.0"  # Hardcoded for testing
-    port = 8002  # Hardcoded to port 8002 for testing
+    # Read host and port from environment variables
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))  # Default to 8000 if not set
+
+    logger.info(f"🚀 Starting server on {host}:{port}")
 
     uvicorn.run(
         "main:app",

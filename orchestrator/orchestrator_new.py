@@ -16,8 +16,9 @@ from autogen_agentchat.messages import TextMessage, ToolCallRequestEvent, ToolCa
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core import CancellationToken
 
-# Import our custom MCP client
+# Import our custom MCP clients
 from mcp_client import create_wesign_tools
+from filesystem_mcp_client import create_filesystem_tools
 from forced_tool_model_client import ForcedToolModelClient
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class WeSignOrchestrator:
         self.conversations = {}  # Store conversation history by conversation_id
         self.mcp_tools = {}  # Store MCP tools by category
         self.wesign_client = None  # WeSign MCP HTTP client
+        self.filesystem_client = None  # FileSystem MCP stdio client
 
         # Model client configuration
         api_key = os.getenv("OPENAI_API_KEY")
@@ -60,11 +62,11 @@ class WeSignOrchestrator:
     async def initialize(self):
         """Initialize all agents and MCP servers"""
         logger.info("=" * 100)
-        logger.info("🚀 ORCHESTRATOR_NEW.PY LOADED - WITH REFLECTION PATTERN")
+        logger.info("🚀 ORCHESTRATOR_NEW.PY LOADED - WITH FILESYSTEM MCP + REFLECTION PATTERN")
         logger.info("📍 File: orchestrator_new.py (NOT orchestrator.py)")
-        logger.info("✨ Features: Hebrew/English support + Response formatting reflection")
+        logger.info("✨ Features: Hebrew/English support + FileSystem MCP + Response formatting")
         logger.info("=" * 100)
-        logger.info("🤖 Initializing AutoGen agents with WeSign MCP HTTP client...")
+        logger.info("🤖 Initializing AutoGen agents with WeSign + FileSystem MCP...")
 
         # Initialize MCP tools
         await self._init_mcp_servers()
@@ -75,14 +77,16 @@ class WeSignOrchestrator:
         await self._create_template_agent()
         await self._create_contact_agent()
         await self._create_admin_agent()
-
+# TEMPORARILY DISABLED:         await self._create_filesystem_agent()  # ADD FILESYSTEM AGENT
 
         # Create formatter agent (without tools) for reflection step
         await self._create_formatter_agent()
 
         total_tools = sum(len(tools) for tools in self.mcp_tools.values())
 
-        logger.info(f"✅ Initialized {len(self.agents)} agents with {total_tools} WeSign tools")
+        logger.info(f"✅ Initialized {len(self.agents)} agents with {total_tools} total tools")
+        logger.info(f"   📄 WeSign tools: {len(self.mcp_tools.get('wesign', []))}")
+        logger.info(f"   📁 FileSystem tools: {len(self.mcp_tools.get('filesystem', []))}")
 
     async def _init_mcp_servers(self):
         """Initialize WeSign MCP HTTP client and load tools"""
@@ -99,11 +103,34 @@ class WeSignOrchestrator:
 
             logger.info(f"✅ WeSign MCP: {len(wesign_tools)} tools available via HTTP REST")
 
+
         except Exception as e:
             logger.error(f"❌ Error initializing WeSign MCP client: {e}", exc_info=True)
             logger.warning("⚠️  WeSign MCP unavailable - continuing with 0 tools")
-            # Continue without MCP tools
-            self.mcp_tools = {"wesign": []}
+            self.mcp_tools["wesign"] = []
+
+# TEMPORARILY DISABLED:         try:
+# TEMPORARILY DISABLED:             # FileSystem MCP Server (stdio-based)
+# TEMPORARILY DISABLED:             logger.info("🔧 Initializing FileSystem MCP stdio client...")
+# TEMPORARILY DISABLED: 
+# TEMPORARILY DISABLED:             # Get allowed directories from environment
+# TEMPORARILY DISABLED:             allowed_dirs_str = os.getenv("FILESYSTEM_ALLOWED_DIRS", "")
+# TEMPORARILY DISABLED:             allowed_dirs = None
+# TEMPORARILY DISABLED:             if allowed_dirs_str:
+# TEMPORARILY DISABLED:                 allowed_dirs = [os.path.expanduser(os.path.expandvars(d.strip()))
+# TEMPORARILY DISABLED:                                for d in allowed_dirs_str.split(",") if d.strip()]
+# TEMPORARILY DISABLED:                 logger.info(f"📂 Allowed directories: {', '.join(allowed_dirs)}")
+# TEMPORARILY DISABLED: 
+# TEMPORARILY DISABLED:             # Create FileSystem MCP client and fetch tools
+# TEMPORARILY DISABLED:             self.filesystem_client, filesystem_tools = await create_filesystem_tools(allowed_dirs)
+# TEMPORARILY DISABLED:             self.mcp_tools["filesystem"] = filesystem_tools
+# TEMPORARILY DISABLED: 
+# TEMPORARILY DISABLED:             logger.info(f"✅ FileSystem MCP: {len(filesystem_tools)} tools available via stdio")
+# TEMPORARILY DISABLED: 
+# TEMPORARILY DISABLED:         except Exception as e:
+# TEMPORARILY DISABLED:             logger.error(f"❌ Error initializing FileSystem MCP client: {e}", exc_info=True)
+# TEMPORARILY DISABLED:             logger.warning("⚠️  FileSystem MCP unavailable - continuing with 0 tools")
+            self.mcp_tools["filesystem"] = []
 
     async def _create_document_agent(self):
         """Agent specialized in document operations"""
@@ -230,18 +257,30 @@ After getting tool results, format them clearly:
 
         self.agents["filesystem"] = AssistantAgent(
             name="FileSystemAgent",
-            description="Specialist in file system operations for WeSign",
+            description="Specialist in file system operations - browse, read, and select files",
             system_message="""You are a file system specialist for WeSign.
-            Your responsibilities:
-            - List files in allowed directories
-            - Read file contents
-            - Help users browse their files
-            - Upload files to WeSign for document processing
 
-            Only access directories that have been explicitly allowed.
-            Always confirm file paths with users before operations.
-            Help users locate and select files for signing workflows.
-            """,
+⚠️ CRITICAL: You MUST call filesystem tools to actually list/read files. DO NOT answer without calling a tool.
+
+Your responsibilities:
+- List files in allowed directories using list_directory tool
+- Read file contents using read_file tool
+- Help users browse their files
+- Get file information using get_file_info tool
+- Search for files using search_files tool
+
+SECURITY RULES:
+- Only access directories that have been explicitly allowed
+- Always confirm file paths with users before operations
+- Help users locate and select files for signing workflows
+
+After getting tool results, format them clearly:
+- Use 📁 📄 emoji headers
+- Respond in the SAME language as user's question (English or Hebrew)
+- Show max 10 items, say "and X more..." if there are more
+- NO raw JSON - make it readable
+- End with "What would you like to do next?" and suggest 2-3 actions
+""",
             model_client=self.model_client,
             tools=tools,
         )
@@ -258,28 +297,85 @@ Your ONLY job is to take raw data and format it beautifully for users.
 
 CRITICAL RULES:
 1. NEVER call tools - you only format existing data
-2. Respond in the SAME LANGUAGE as the user's question
-3. Use emojis and clear formatting (📄 📋 👥 ✅ ⏳ ❌)
+2. Respond ENTIRELY in the SAME LANGUAGE as the user's question
+   - If Hebrew: ALL text (titles, headings, values) must be in Hebrew
+   - If English: ALL text must be in English
+   - NEVER mix languages (e.g., English title + Hebrew content)
+3. Use emojis consistently (📄 📋 👥 📁 ✅ ⏳ ❌ 🎉 👤 💼)
 4. Present data in numbered lists or bullet points
 5. Keep responses concise and natural
 6. End with "What would you like to do next?" and suggest 2-3 actions
 7. NEVER show raw JSON or Python dicts
 
-Example format (Hebrew):
-📋 התבניות שלך (מציג 10 מתוך 45):
+FIELD VALUE MAPPING:
+When you see null, None, or missing status values, use:
+- English: "Active" or "Status: Active"
+- Hebrew: "פעיל" or "סטטוס: פעיל"
+NEVER show "Unknown", "לא ידוע", "null", or "None"
 
-1. תבנית חוזה העסקה
-   סטטוס: פעיל
+Example format (English) - Login response:
+🎉 Login Successful! Welcome to WeSign.
 
-2. תבנית NDA
-   סטטוס: פעיל
+👤 **Your Profile Details:**
+- **Name:** John Doe
+- **Email:** user@example.com
+- **Company Name:** Acme Corp
+- **Role:** Company Admin
+- **Preferred Language:** English
+- **Remaining Documents:** Unlimited
 
-...ועוד 35 תבניות.
+💼 **Session Type:** session
+
+What would you like to do next?
+- Create a new document
+- View your documents
+- Update your profile
+
+Example format (Hebrew) - Login response:
+🎉 התחברות הצליחה! ברוך הבא ל-WeSign.
+
+👤 **פרטי הפרופיל שלך:**
+- **שם:** ג'ון דו
+- **אימייל:** user@example.com
+- **שם החברה:** Acme Corp
+- **תפקיד:** מנהל חברה
+- **שפה מועדפת:** עברית
+- **מסמכים שנותרו:** ללא הגבלה
+
+💼 **סוג הסשן:** session
+
+מה תרצה לעשות הלאה?
+- ליצור מסמך חדש
+- לראות את המסמכים שלך
+- לעדכן את הפרופיל שלך
+
+Example format (Hebrew) - Templates:
+📋 **התבניות שלך (מציג 10 מתוך 45):**
+
+1. תבנית חוזה העסקה - סטטוס: פעיל
+2. תבנית NDA - סטטוס: פעיל
+3. הסכם שירות - סטטוס: פעיל
+
+...ועוד 42 תבניות.
 
 מה תרצה לעשות הלאה?
 • ליצור תבנית חדשה
-• להשתמש בתבנית
-• לחפש תבניות""",
+• להשתמש בתבנית קיימת
+• לחפש תבניות
+
+Example format (English) - Templates:
+📋 **Your Templates (Showing 10 of 45):**
+
+1. Employment Contract Template - Status: Active
+2. NDA Template - Status: Active
+3. Service Agreement - Status: Active
+
+...and 42 more templates.
+
+What would you like to do next?
+• Create a new template
+• Use an existing template
+• Search templates""",
             model_client=self.formatter_model_client,
             tools=[],  # NO TOOLS - formatter only!
         )
@@ -322,6 +418,9 @@ Example format (Hebrew):
                     file_info += f"- {f['fileName']} (at {f['filePath']})\n"
                 full_message = message + file_info
 
+            # Preprocess message: Replace template names with their IDs
+            full_message = self._preprocess_template_references(full_message, conversation_id)
+
             # Determine which agent should handle this
             agent_choice = self._select_agent(full_message)
             logger.info(f"🎯 Selected agent: {agent_choice}")
@@ -358,13 +457,52 @@ Example format (Hebrew):
                 raw_response = self._extract_response(result)
                 logger.info(f"📥 Raw tool response (first 200 chars): {str(raw_response)[:200]}...")
 
-                # Detect the language of the original question
-                is_hebrew = self._detect_hebrew(message)
-                logger.info(f"🌍 Language detected: {'Hebrew (עברית)' if is_hebrew else 'English'}")
-                language_instruction = "עליך לענות בעברית" if is_hebrew else "You must respond in English"
+                # CHECK FOR ERRORS IN TOOL EXECUTION
+                has_error = False
+                error_message = None
 
-                # Create a reflection prompt asking the agent to format the tool result
-                reflection_prompt = f"""{language_instruction}.
+                # Try to parse response as dict to check for errors
+                try:
+                    if isinstance(raw_response, str):
+                        import ast
+                        response_dict = ast.literal_eval(raw_response)
+                    else:
+                        response_dict = raw_response
+
+                    # Check for error indicators
+                    if isinstance(response_dict, dict):
+                        if 'error' in response_dict or response_dict.get('success') == False:
+                            has_error = True
+                            error_message = response_dict.get('error', 'Tool execution failed')
+                            logger.error(f"❌ Tool execution error detected: {error_message}")
+                except Exception as e:
+                    # If parsing fails, check if raw string contains error keywords
+                    if 'error' in str(raw_response).lower() or 'failed' in str(raw_response).lower():
+                        has_error = True
+                        error_message = str(raw_response)
+                        logger.error(f"❌ Error detected in raw response: {error_message[:200]}")
+
+                # If error detected, return error message directly without formatting
+                if has_error:
+                    logger.warning("⚠️  Skipping formatter due to tool execution error")
+                    # Detect language for error message
+                    is_hebrew = self._detect_hebrew(message)
+                    error_prefix = "שגיאה: " if is_hebrew else "Error: "
+                    response_text = f"{error_prefix}{error_message}"
+                    logger.info(f"📤 Error response: {response_text[:200]}...")
+                else:
+                    # SUCCESS - Extract and store template IDs if this was a list_templates call
+                    template_ids = self._extract_and_store_template_ids(tool_calls, raw_response, conversation_id)
+                    if template_ids:
+                        logger.info(f"📋 Extracted {len(template_ids)} template IDs for future use")
+
+                    # Detect the language of the original question
+                    is_hebrew = self._detect_hebrew(message)
+                    logger.info(f"🌍 Language detected: {'Hebrew (עברית)' if is_hebrew else 'English'}")
+                    language_instruction = "עליך לענות בעברית" if is_hebrew else "You must respond in English"
+
+                    # Create a reflection prompt asking the agent to format the tool result
+                    reflection_prompt = f"""{language_instruction}.
 
 The user asked: "{message}"
 
@@ -379,23 +517,24 @@ Your task:
 
 Remember: Respond in the SAME LANGUAGE as the user's question!"""
 
-                logger.info(f"🔄 Running reflection step to format response...")
-                logger.info(f"📝 Reflection prompt language: {'Hebrew (עברית)' if is_hebrew else 'English'}")
-                logger.info(f"🎨 Using FORMATTER AGENT (no tools) for reflection")
+                    logger.info(f"🔄 Running reflection step to format response...")
+                    logger.info(f"📝 Reflection prompt language: {'Hebrew (עברית)' if is_hebrew else 'English'}")
+                    logger.info(f"🎨 Using FORMATTER AGENT (no tools) for reflection")
 
-                # Use formatter agent (without tools) for reflection
-                formatter_agent = self.agents.get("formatter")
-                if not formatter_agent:
-                    logger.warning("⚠️  Formatter agent not found, using original agent")
-                    formatter_agent = agent
+                    # Use formatter agent (without tools) for reflection
+                    formatter_agent = self.agents.get("formatter")
+                    if not formatter_agent:
+                        logger.warning("⚠️  Formatter agent not found, using original agent")
+                        formatter_agent = agent
 
-                reflection_result: Response = await formatter_agent.run(
-                    task=reflection_prompt,
-                    cancellation_token=cancellation_token
-                )
+                    reflection_result: Response = await formatter_agent.run(
+                        task=reflection_prompt,
+                        cancellation_token=cancellation_token
+                    )
 
-                response_text = self._extract_response(reflection_result)
-                logger.info(f"📤 Formatted response (first 200 chars): {str(response_text)[:200]}...")
+                    response_text = self._extract_response(reflection_result)
+                    logger.info(f"📤 Formatted response (first 200 chars): {str(response_text)[:200]}...")
+
                 logger.info("=" * 80)
                 logger.info("✅ REFLECTION PATTERN COMPLETED")
                 logger.info("=" * 80)
@@ -425,7 +564,7 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
                     "agent": agent_choice,
                     "user_name": user_name,
                     "files_count": len(files) if files else 0,
-                    "orchestrator_version": "v2.7-contact-agent-debug-2025-11-11"
+                    "orchestrator_version": "v2.8-filesystem-mcp-2025-11-17"
                 }
             }
 
@@ -437,7 +576,7 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
                 "tool_calls": [],
                 "metadata": {
                     "error": str(e),
-                    "orchestrator_version": "v2.7-contact-agent-debug-2025-11-11"
+                    "orchestrator_version": "v2.8-filesystem-mcp-2025-11-17"
                 }
             }
 
@@ -453,6 +592,147 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
         """
         hebrew_chars = set(range(0x0590, 0x05FF))  # Hebrew Unicode block
         return any(ord(char) in hebrew_chars for char in text)
+
+    def _extract_and_store_template_ids(self, tool_calls: List[Dict], raw_response: Any, conversation_id: str) -> Optional[Dict[str, str]]:
+        """
+        Extract template IDs from API responses and store them in conversation context.
+        This allows users to reference templates by name while we use the actual GUID internally.
+
+        Args:
+            tool_calls: List of tool calls made
+            raw_response: Raw response from tool execution
+            conversation_id: Current conversation ID
+
+        Returns:
+            Dictionary of template_name -> template_id if templates were found, None otherwise
+        """
+        # Check if any tool call was related to templates
+        template_tools = ['wesign_list_templates', 'wesign_get_template', 'wesign_create_template']
+        is_template_call = any(call.get('tool_name') == tool_name for call in tool_calls for tool_name in template_tools)
+
+        if not is_template_call:
+            return None
+
+        logger.info("📋 Extracting template IDs from response...")
+
+        # Initialize conversation template storage if needed
+        if conversation_id not in self.conversations:
+            self.conversations[conversation_id] = {}
+        if 'template_ids' not in self.conversations[conversation_id]:
+            self.conversations[conversation_id]['template_ids'] = {}
+
+        extracted_ids = {}
+
+        try:
+            # Parse response if it's a string
+            if isinstance(raw_response, str):
+                import ast
+                response_dict = ast.literal_eval(raw_response)
+            else:
+                response_dict = raw_response
+
+            # Handle list_templates response
+            if isinstance(response_dict, dict):
+                # Check for templates array in response
+                templates = None
+                if 'templates' in response_dict:
+                    templates = response_dict['templates']
+                elif 'data' in response_dict and isinstance(response_dict['data'], list):
+                    templates = response_dict['data']
+                elif isinstance(response_dict, list):
+                    templates = response_dict
+
+                if templates and isinstance(templates, list):
+                    for template in templates:
+                        if isinstance(template, dict):
+                            # Extract name and ID (try both 'id' and 'templateId')
+                            template_name = template.get('name') or template.get('templateName')
+                            template_id = template.get('id') or template.get('templateId')
+
+                            if template_name and template_id:
+                                extracted_ids[template_name] = template_id
+                                self.conversations[conversation_id]['template_ids'][template_name] = template_id
+                                logger.info(f"  ✓ Stored: '{template_name}' -> {template_id}")
+
+            # Handle get_template or create_template response (single template)
+            elif isinstance(response_dict, dict) and ('id' in response_dict or 'templateId' in response_dict):
+                template_name = response_dict.get('name') or response_dict.get('templateName')
+                template_id = response_dict.get('id') or response_dict.get('templateId')
+
+                if template_name and template_id:
+                    extracted_ids[template_name] = template_id
+                    self.conversations[conversation_id]['template_ids'][template_name] = template_id
+                    logger.info(f"  ✓ Stored: '{template_name}' -> {template_id}")
+
+            if extracted_ids:
+                logger.info(f"📋 Successfully extracted {len(extracted_ids)} template IDs")
+                logger.info(f"📋 Total templates in context: {len(self.conversations[conversation_id]['template_ids'])}")
+            else:
+                logger.info("📋 No template IDs found in response")
+
+            return extracted_ids if extracted_ids else None
+
+        except Exception as e:
+            logger.error(f"❌ Error extracting template IDs: {str(e)}")
+            return None
+
+    def _preprocess_template_references(self, message: str, conversation_id: str) -> str:
+        """
+        Preprocess message to replace template names with their actual IDs.
+        This allows users to say "template 1234" and we'll use the real GUID.
+
+        Args:
+            message: Original user message
+            conversation_id: Current conversation ID
+
+        Returns:
+            Preprocessed message with template IDs replaced
+        """
+        # Check if we have any stored template IDs
+        if conversation_id not in self.conversations:
+            return message
+        if 'template_ids' not in self.conversations[conversation_id]:
+            return message
+
+        template_ids = self.conversations[conversation_id]['template_ids']
+        if not template_ids:
+            return message
+
+        preprocessed = message
+        replacements_made = []
+
+        # Look for template references in the message
+        # Patterns: "template X", "from template X", "template named X", "my X template"
+        import re
+
+        for template_name, template_id in template_ids.items():
+            # Create regex patterns to find this template name in various contexts
+            patterns = [
+                rf'\btemplate\s+["\']?{re.escape(template_name)}["\']?\b',  # "template 1234" or "template '1234'"
+                rf'\bfrom\s+template\s+["\']?{re.escape(template_name)}["\']?\b',  # "from template 1234"
+                rf'\btemplate\s+named\s+["\']?{re.escape(template_name)}["\']?\b',  # "template named 1234"
+                rf'\bmy\s+["\']?{re.escape(template_name)}["\']?\s+template\b',  # "my 1234 template"
+                rf'\bthe\s+["\']?{re.escape(template_name)}["\']?\s+template\b',  # "the 1234 template"
+                rf'\bתבנית\s+["\']?{re.escape(template_name)}["\']?\b',  # Hebrew: "תבנית 1234"
+                rf'\bמתבנית\s+["\']?{re.escape(template_name)}["\']?\b',  # Hebrew: "מתבנית 1234"
+            ]
+
+            for pattern in patterns:
+                matches = re.finditer(pattern, preprocessed, re.IGNORECASE)
+                for match in matches:
+                    original_text = match.group(0)
+                    # Replace the template name with the ID, keeping the surrounding text
+                    replacement = original_text.replace(template_name, template_id)
+                    preprocessed = preprocessed[:match.start()] + replacement + preprocessed[match.end():]
+                    replacements_made.append(f"'{template_name}' → '{template_id}'")
+                    break  # Only replace once per pattern to avoid double-replacement
+
+        if replacements_made:
+            logger.info(f"📝 Template name replacements made: {', '.join(replacements_made)}")
+            logger.info(f"📝 Original message: {message}")
+            logger.info(f"📝 Preprocessed message: {preprocessed}")
+
+        return preprocessed
 
     def _select_agent(self, message: str) -> str:
         """
@@ -473,8 +753,11 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
         logger.info(f"🔍 AGENT SELECTION - Message: '{message}'")
         logger.info(f"🔍 AGENT SELECTION - Message (lowercase): '{message_lower}'")
 
-        # FileSystem-related keywords (English)
-        if any(word in message_lower for word in ["file", "browse", "select file", "read file", "list files", "show files"]):
+        # FileSystem-related keywords (English + Hebrew)
+        # Hebrew: קובץ (file), קבצים (files), תיקייה (folder), רשימת קבצים (file list)
+        filesystem_keywords = ["file", "files", "browse", "select file", "read file", "list files", "show files",
+                              "directory", "folder", "קובץ", "קבצים", "תיקייה", "תיקיות", "רשימת קבצים"]
+        if any(word in message_lower or word in message for word in filesystem_keywords):
             if "filesystem" in self.agents:
                 logger.info(f"✅ AGENT SELECTED: filesystem")
                 return "filesystem"

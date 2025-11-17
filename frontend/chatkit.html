@@ -76,6 +76,7 @@
             padding: 12px 16px;
             border-radius: 18px;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
 
         .message.user .message-content {
@@ -245,7 +246,7 @@
 
     <script>
         const CONFIG = {
-            orchestratorUrl: 'http://localhost:8002',
+            orchestratorUrl: window.location.origin,
             userId: 'demo-user-123',
             companyId: 'demo-company-456',
             userName: 'John Doe'
@@ -258,11 +259,14 @@
 
         let conversationId = null;
         let typingIndicator = null;
+        let pendingAssistantMessage = null;
 
         // Create typing indicator
         function createTypingIndicator() {
             const message = document.createElement('div');
             message.className = 'message assistant';
+            // Mark as loading state for test automation
+            message.setAttribute('data-status', 'loading');
             message.innerHTML = `
                 <div class="typing-indicator active">
                     <div class="typing-dots">
@@ -276,9 +280,15 @@
         }
 
         // Add message to chat
-        function addMessage(content, role) {
+        function addMessage(content, role, isComplete = true) {
             const message = document.createElement('div');
             message.className = `message ${role}`;
+
+            // Add data-status attribute for test automation
+            if (role === 'assistant') {
+                message.setAttribute('data-status', isComplete ? 'complete' : 'loading');
+                message.setAttribute('data-message-id', Date.now().toString());
+            }
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
@@ -289,6 +299,15 @@
 
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Dispatch custom event when message is added
+            if (role === 'assistant' && isComplete) {
+                window.dispatchEvent(new CustomEvent('assistant-message-complete', {
+                    detail: { messageId: message.getAttribute('data-message-id'), content }
+                }));
+            }
+
+            return message; // Return message element for future updates
         }
 
         // Handle form submission
@@ -308,6 +327,7 @@
 
             // Show typing indicator
             typingIndicator = createTypingIndicator();
+            pendingAssistantMessage = typingIndicator;
             chatMessages.appendChild(typingIndicator);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -333,6 +353,7 @@
                 if (typingIndicator) {
                     typingIndicator.remove();
                     typingIndicator = null;
+                    pendingAssistantMessage = null;
                 }
 
                 if (!response.ok) {
@@ -344,8 +365,8 @@
                 // Update conversation ID
                 conversationId = data.conversationId;
 
-                // Add assistant response
-                addMessage(data.response, 'assistant');
+                // Add assistant response with complete status
+                const assistantMessage = addMessage(data.response, 'assistant', true);
 
                 // Log tool calls if any
                 if (data.toolCalls && data.toolCalls.length > 0) {
@@ -357,6 +378,7 @@
                 if (typingIndicator) {
                     typingIndicator.remove();
                     typingIndicator = null;
+                    pendingAssistantMessage = null;
                 }
 
                 console.error('Chat error:', error);
@@ -390,6 +412,7 @@
 
         console.log('%c🤖 WeSign AI Assistant Ready!', 'font-size: 20px; font-weight: bold; color: #667eea;');
         console.log('%cPowered by AutoGen Multi-Agent System', 'font-size: 14px; color: #764ba2;');
+        console.log('%c📊 Test Automation: Use data-status attribute to detect completion', 'font-size: 12px; color: #999;');
     </script>
 </body>
 </html>

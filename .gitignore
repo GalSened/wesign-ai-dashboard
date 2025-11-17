@@ -24,11 +24,17 @@ wheels/
 # Environment variables
 .env
 *.env
+.env.backup
+*.env.backup
 !.env.example
+
+# Serena code analysis
+.serena/
 
 # Logs
 logs/
 *.log
+orchestrator.log
 
 # IDE
 .vscode/
