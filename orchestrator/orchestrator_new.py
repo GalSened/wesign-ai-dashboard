@@ -18,13 +18,12 @@ from autogen_core import CancellationToken
 
 # Import our custom MCP clients
 from mcp_client import create_wesign_tools
-from filesystem_mcp_client import create_filesystem_tools
 from forced_tool_model_client import ForcedToolModelClient
 
 logger = logging.getLogger(__name__)
 
 # Version marker for debugging
-ORCHESTRATOR_VERSION = "v2.8-debug-backend-fetch-2025-11-17-15:25"
+ORCHESTRATOR_VERSION = "v2.9-drag-and-drop-2025-11-19"
 logger.info(f"🔖 Loading orchestrator_new.py version: {ORCHESTRATOR_VERSION}")
 
 
@@ -38,7 +37,6 @@ class WeSignOrchestrator:
         self.template_ids = {}  # Store template name->ID mappings by conversation_id
         self.mcp_tools = {}  # Store MCP tools by category
         self.wesign_client = None  # WeSign MCP HTTP client
-        self.filesystem_client = None  # FileSystem MCP stdio client
 
         # Model client configuration
         api_key = os.getenv("OPENAI_API_KEY")
@@ -67,11 +65,11 @@ class WeSignOrchestrator:
     async def initialize(self):
         """Initialize all agents and MCP servers"""
         logger.info("=" * 100)
-        logger.info("🚀 ORCHESTRATOR_NEW.PY LOADED - WITH FILESYSTEM MCP + REFLECTION PATTERN")
+        logger.info("🚀 ORCHESTRATOR_NEW.PY LOADED - WITH DRAG-AND-DROP + REFLECTION PATTERN")
         logger.info("📍 File: orchestrator_new.py (NOT orchestrator.py)")
-        logger.info("✨ Features: Hebrew/English support + FileSystem MCP + Response formatting")
+        logger.info("✨ Features: Hebrew/English support + Drag-and-drop file upload + Response formatting")
         logger.info("=" * 100)
-        logger.info("🤖 Initializing AutoGen agents with WeSign + FileSystem MCP...")
+        logger.info("🤖 Initializing AutoGen agents with WeSign MCP...")
 
         # Initialize MCP tools
         await self._init_mcp_servers()
@@ -82,7 +80,6 @@ class WeSignOrchestrator:
         await self._create_template_agent()
         await self._create_contact_agent()
         await self._create_admin_agent()
-# TEMPORARILY DISABLED:         await self._create_filesystem_agent()  # ADD FILESYSTEM AGENT
 
         # Create formatter agent (without tools) for reflection step
         await self._create_formatter_agent()
@@ -91,7 +88,6 @@ class WeSignOrchestrator:
 
         logger.info(f"✅ Initialized {len(self.agents)} agents with {total_tools} total tools")
         logger.info(f"   📄 WeSign tools: {len(self.mcp_tools.get('wesign', []))}")
-        logger.info(f"   📁 FileSystem tools: {len(self.mcp_tools.get('filesystem', []))}")
 
     async def _init_mcp_servers(self):
         """Initialize WeSign MCP HTTP client and load tools"""
@@ -113,29 +109,6 @@ class WeSignOrchestrator:
             logger.error(f"❌ Error initializing WeSign MCP client: {e}", exc_info=True)
             logger.warning("⚠️  WeSign MCP unavailable - continuing with 0 tools")
             self.mcp_tools["wesign"] = []
-
-# TEMPORARILY DISABLED:         try:
-# TEMPORARILY DISABLED:             # FileSystem MCP Server (stdio-based)
-# TEMPORARILY DISABLED:             logger.info("🔧 Initializing FileSystem MCP stdio client...")
-# TEMPORARILY DISABLED: 
-# TEMPORARILY DISABLED:             # Get allowed directories from environment
-# TEMPORARILY DISABLED:             allowed_dirs_str = os.getenv("FILESYSTEM_ALLOWED_DIRS", "")
-# TEMPORARILY DISABLED:             allowed_dirs = None
-# TEMPORARILY DISABLED:             if allowed_dirs_str:
-# TEMPORARILY DISABLED:                 allowed_dirs = [os.path.expanduser(os.path.expandvars(d.strip()))
-# TEMPORARILY DISABLED:                                for d in allowed_dirs_str.split(",") if d.strip()]
-# TEMPORARILY DISABLED:                 logger.info(f"📂 Allowed directories: {', '.join(allowed_dirs)}")
-# TEMPORARILY DISABLED: 
-# TEMPORARILY DISABLED:             # Create FileSystem MCP client and fetch tools
-# TEMPORARILY DISABLED:             self.filesystem_client, filesystem_tools = await create_filesystem_tools(allowed_dirs)
-# TEMPORARILY DISABLED:             self.mcp_tools["filesystem"] = filesystem_tools
-# TEMPORARILY DISABLED: 
-# TEMPORARILY DISABLED:             logger.info(f"✅ FileSystem MCP: {len(filesystem_tools)} tools available via stdio")
-# TEMPORARILY DISABLED: 
-# TEMPORARILY DISABLED:         except Exception as e:
-# TEMPORARILY DISABLED:             logger.error(f"❌ Error initializing FileSystem MCP client: {e}", exc_info=True)
-# TEMPORARILY DISABLED:             logger.warning("⚠️  FileSystem MCP unavailable - continuing with 0 tools")
-            self.mcp_tools["filesystem"] = []
 
     async def _fetch_template_data_from_backend(self, conversation_id: str, limit: int = 100) -> dict:
         """
@@ -372,41 +345,6 @@ After getting tool results, format them clearly:
             model_client=self.model_client,
             tools=[],  # Admin agent doesn't need MCP tools
         )
-
-    async def _create_filesystem_agent(self):
-        """Agent specialized in file system operations"""
-        tools = self.mcp_tools.get("filesystem", [])
-
-        self.agents["filesystem"] = AssistantAgent(
-            name="FileSystemAgent",
-            description="Specialist in file system operations - browse, read, and select files",
-            system_message="""You are a file system specialist for WeSign.
-
-⚠️ CRITICAL: You MUST call filesystem tools to actually list/read files. DO NOT answer without calling a tool.
-
-Your responsibilities:
-- List files in allowed directories using list_directory tool
-- Read file contents using read_file tool
-- Help users browse their files
-- Get file information using get_file_info tool
-- Search for files using search_files tool
-
-SECURITY RULES:
-- Only access directories that have been explicitly allowed
-- Always confirm file paths with users before operations
-- Help users locate and select files for signing workflows
-
-After getting tool results, format them clearly:
-- Use 📁 📄 emoji headers
-- Respond in the SAME language as user's question (English or Hebrew)
-- Show max 10 items, say "and X more..." if there are more
-- NO raw JSON - make it readable
-- End with "What would you like to do next?" and suggest 2-3 actions
-""",
-            model_client=self.model_client,
-            tools=tools,
-        )
-
 
     async def _create_formatter_agent(self):
         """Agent specialized in formatting tool results - NO TOOLS"""
@@ -847,15 +785,6 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
         print(f"{'='*80}\n")
         logger.info(f"🔍 AGENT SELECTION - Message: '{message}'")
         logger.info(f"🔍 AGENT SELECTION - Message (lowercase): '{message_lower}'")
-
-        # FileSystem-related keywords (English + Hebrew)
-        # Hebrew: קובץ (file), קבצים (files), תיקייה (folder), רשימת קבצים (file list)
-        filesystem_keywords = ["file", "files", "browse", "select file", "read file", "list files", "show files",
-                              "directory", "folder", "קובץ", "קבצים", "תיקייה", "תיקיות", "רשימת קבצים"]
-        if any(word in message_lower or word in message for word in filesystem_keywords):
-            if "filesystem" in self.agents:
-                logger.info(f"✅ AGENT SELECTED: filesystem")
-                return "filesystem"
 
         # Contact-related keywords (English + Hebrew)
         # Hebrew: איש קשר (contact), אנשי קשר (contacts), ספר כתובות (address book), קבוצה (group)

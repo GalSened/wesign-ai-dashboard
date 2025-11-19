@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f1f5f9;
             height: 100vh;
             display: flex;
             align-items: center;
@@ -22,31 +22,43 @@
 
         .chat-container {
             width: 90%;
-            max-width: 800px;
+            max-width: 900px;
             height: 90vh;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
         .chat-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e3a8a;
             color: white;
-            padding: 20px;
-            text-align: center;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .chat-header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .chat-header h1 .we {
+            color: #ef4444;
+        }
+
+        .chat-header h1 .sign {
+            color: white;
         }
 
         .chat-header p {
-            font-size: 14px;
-            opacity: 0.9;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 4px;
         }
 
         .chat-messages {
@@ -80,19 +92,20 @@
         }
 
         .message.user .message-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             color: white;
         }
 
         .message.assistant .message-content {
             background: white;
-            color: #333;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: #1e293b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
         }
 
         .message.system .message-content {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #dbeafe;
+            color: #1e40af;
             max-width: 100%;
             text-align: center;
             font-size: 14px;
@@ -120,29 +133,90 @@
         }
 
         .chat-input:focus {
-            border-color: #667eea;
+            border-color: #3b82f6;
+        }
+
+        .mic-button {
+            padding: 12px;
+            background: white;
+            color: #3b82f6;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-button:hover:not(:disabled) {
+            background: #3b82f6;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .mic-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .mic-button.recording {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .send-button {
             padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             color: white;
             border: none;
             border-radius: 25px;
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
         }
 
         .send-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         .send-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logout-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-button:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .typing-indicator {
@@ -166,7 +240,7 @@
         .typing-dots span {
             width: 8px;
             height: 8px;
-            background: #667eea;
+            background: #3b82f6;
             border-radius: 50%;
             animation: typing 1.4s infinite;
         }
@@ -188,8 +262,9 @@
         }
 
         .welcome-card h3 {
-            color: #667eea;
+            color: #1e3a8a;
             margin-bottom: 15px;
+            font-weight: 600;
         }
 
         .welcome-card ul {
@@ -198,27 +273,187 @@
 
         .welcome-card li {
             padding: 8px 0;
-            color: #666;
+            color: #64748b;
         }
 
         .welcome-card li:before {
             content: "✓ ";
-            color: #667eea;
+            color: #3b82f6;
             font-weight: bold;
             margin-right: 8px;
+        }
+
+        /* File Upload Zone Styles */
+        .file-upload-zone {
+            margin: 20px;
+            padding: 40px 20px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .file-upload-zone:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .file-upload-zone.drag-over {
+            border-color: #3b82f6;
+            background: #dbeafe;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .browse-link {
+            color: #3b82f6;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .uploaded-files {
+            margin: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .clear-files-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-files-btn:hover {
+            background: #dc2626;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover {
+            background: #f1f5f9;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 24px;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 14px;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .file-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .file-status.uploading {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .file-status.uploaded {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .file-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .remove-file-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px;
+            transition: all 0.2s;
+        }
+
+        .remove-file-btn:hover {
+            color: #dc2626;
+            transform: scale(1.1);
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h1>🤖 WeSign AI Assistant</h1>
-            <p>Powered by AutoGen Multi-Agent System</p>
+            <div class="user-info">
+                <div>
+                    <h1><span class="we">We</span><span class="sign">sign</span> <span style="font-size: 20px; opacity: 0.8;">AI Assistant</span></h1>
+                    <p>Powered by AutoGen Multi-Agent System</p>
+                </div>
+                <button class="logout-button" id="logoutButton" style="display: none;">Logout</button>
+            </div>
         </div>
 
         <div class="chat-messages" id="chatMessages">
-            <div class="welcome-card">
-                <h3>Welcome! I'm your WeSign AI Assistant</h3>
+            <div class="welcome-card" id="welcomeCard">
+                <h3 id="welcomeTitle">Welcome! I'm your WeSign AI Assistant</h3>
                 <ul>
                     <li>Upload and manage documents</li>
                     <li>Create and complete signature workflows</li>
@@ -228,15 +463,35 @@
                 </ul>
                 <p style="margin-top: 15px; color: #999; font-size: 14px;">How can I help you today?</p>
             </div>
+
+            <!-- File Upload Zone -->
+            <div class="file-upload-zone" id="fileUploadZone">
+                <div class="upload-icon">📎</div>
+                <p class="upload-text">Drag and drop files here or <span class="browse-link">browse</span></p>
+                <p class="upload-hint">PDF, Word, Excel, Images (Max 25MB)</p>
+                <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" hidden>
+            </div>
+
+            <!-- Uploaded Files List -->
+            <div class="uploaded-files" id="uploadedFilesList" style="display: none;">
+                <div class="files-header">
+                    <span>📎 Attached Files</span>
+                    <button class="clear-files-btn" id="clearFilesBtn">Clear All</button>
+                </div>
+                <div class="files-list" id="filesList"></div>
+            </div>
         </div>
 
         <div class="chat-input-container">
             <form class="chat-input-form" id="chatForm">
+                <button type="button" class="mic-button" id="micButton" title="Voice input (Whisper)">
+                    🎤
+                </button>
                 <input
                     type="text"
                     class="chat-input"
                     id="chatInput"
-                    placeholder="Ask me about documents, signatures, templates..."
+                    placeholder="Ask me about documents, signatures, templates... (or use voice)"
                     autocomplete="off"
                 >
                 <button type="submit" class="send-button" id="sendButton">Send</button>
@@ -245,21 +500,57 @@
     </div>
 
     <script>
+        // Check authentication on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const authToken = sessionStorage.getItem('wesign_auth_token') || localStorage.getItem('wesign_auth_token');
+            const userName = sessionStorage.getItem('wesign_user_name') || localStorage.getItem('wesign_user_name');
+            const userEmail = sessionStorage.getItem('wesign_user_email') || localStorage.getItem('wesign_user_email');
+
+            if (!authToken) {
+                console.log('🔐 No auth token found, redirecting to login...');
+                window.location.href = '/login';
+                return;
+            }
+
+            // Show logout button
+            document.getElementById('logoutButton').style.display = 'block';
+
+            // Update welcome message with user's name
+            if (userName) {
+                const welcomeTitle = document.getElementById('welcomeTitle');
+                welcomeTitle.textContent = `Welcome back, ${userName}! 👋`;
+                console.log(`✅ Logged in as: ${userName} (${userEmail})`);
+            }
+        });
+
         const CONFIG = {
             orchestratorUrl: window.location.origin,
-            userId: 'demo-user-123',
+            userId: sessionStorage.getItem('wesign_user_email') || localStorage.getItem('wesign_user_email') || 'demo-user-123',
             companyId: 'demo-company-456',
-            userName: 'John Doe'
+            userName: sessionStorage.getItem('wesign_user_name') || localStorage.getItem('wesign_user_name') || 'User'
         };
 
         const chatMessages = document.getElementById('chatMessages');
         const chatForm = document.getElementById('chatForm');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
+        const micButton = document.getElementById('micButton');
+        const logoutButton = document.getElementById('logoutButton');
 
         let conversationId = null;
         let typingIndicator = null;
         let pendingAssistantMessage = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        // File upload state
+        let uploadedFiles = []; // Array of {fileId, fileName, filePath, size}
+        const fileUploadZone = document.getElementById('fileUploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadedFilesList = document.getElementById('uploadedFilesList');
+        const filesList = document.getElementById('filesList');
+        const clearFilesBtn = document.getElementById('clearFilesBtn');
 
         // Create typing indicator
         function createTypingIndicator() {
@@ -345,7 +636,8 @@
                             companyId: CONFIG.companyId,
                             userName: CONFIG.userName,
                             conversationId: conversationId
-                        }
+                        },
+                        files: uploadedFiles.length > 0 ? uploadedFiles : undefined
                     })
                 });
 
@@ -367,6 +659,11 @@
 
                 // Add assistant response with complete status
                 const assistantMessage = addMessage(data.response, 'assistant', true);
+
+                // Clear uploaded files after successful send
+                if (uploadedFiles.length > 0) {
+                    clearAllFiles();
+                }
 
                 // Log tool calls if any
                 if (data.toolCalls && data.toolCalls.length > 0) {
@@ -406,12 +703,329 @@
             }
         }
 
+        // Microphone button click handler
+        micButton.addEventListener('click', async () => {
+            if (isRecording) {
+                // Stop recording
+                stopRecording();
+            } else {
+                // Start recording
+                await startRecording();
+            }
+        });
+
+        // Start voice recording
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await transcribeAudio(audioBlob);
+
+                    // Stop all audio tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                micButton.classList.add('recording');
+                micButton.title = 'Click to stop recording';
+                chatInput.placeholder = '🔴 Recording... Click microphone to stop';
+                console.log('🎤 Recording started...');
+            } catch (error) {
+                console.error('❌ Microphone access error:', error);
+                addMessage('❌ Could not access microphone. Please check permissions.', 'system');
+            }
+        }
+
+        // Stop voice recording
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                micButton.classList.remove('recording');
+                micButton.title = 'Voice input (Whisper)';
+                chatInput.placeholder = 'Ask me about documents, signatures, templates... (or use voice)';
+                console.log('🎤 Recording stopped');
+            }
+        }
+
+        // Transcribe audio using Whisper API
+        async function transcribeAudio(audioBlob) {
+            try {
+                addMessage('🎤 Transcribing audio...', 'system');
+
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'recording.webm');
+
+                const response = await fetch(`${CONFIG.orchestratorUrl}/api/speech-to-text`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Transcription failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const transcribedText = data.text || data.transcription;
+
+                if (transcribedText) {
+                    // Remove transcribing message
+                    const systemMessages = document.querySelectorAll('.message.system');
+                    const lastSystemMessage = systemMessages[systemMessages.length - 1];
+                    if (lastSystemMessage && lastSystemMessage.textContent.includes('Transcribing')) {
+                        lastSystemMessage.remove();
+                    }
+
+                    // Put transcribed text in input and submit
+                    chatInput.value = transcribedText;
+                    console.log('✅ Transcription:', transcribedText);
+
+                    // Auto-submit
+                    chatForm.dispatchEvent(new Event('submit'));
+                } else {
+                    throw new Error('No transcription returned');
+                }
+            } catch (error) {
+                console.error('❌ Transcription error:', error);
+                addMessage(`❌ Transcription failed: ${error.message}`, 'system');
+            }
+        }
+
+        // Logout handler
+        logoutButton.addEventListener('click', () => {
+            sessionStorage.removeItem('wesign_auth_token');
+            sessionStorage.removeItem('wesign_user_name');
+            sessionStorage.removeItem('wesign_user_email');
+            localStorage.removeItem('wesign_auth_token');
+            localStorage.removeItem('wesign_user_name');
+            localStorage.removeItem('wesign_user_email');
+            console.log('🔐 Logged out');
+            window.location.href = '/login';
+        });
+
+        // ========== File Upload Functions ==========
+
+        // Validate file
+        function validateFile(file) {
+            const maxSize = 25 * 1024 * 1024; // 25MB
+            const allowedTypes = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'image/png',
+                'image/jpeg',
+                'image/jpg'
+            ];
+
+            if (file.size > maxSize) {
+                return { valid: false, error: `File "${file.name}" exceeds 25MB limit` };
+            }
+
+            if (!allowedTypes.includes(file.type)) {
+                return { valid: false, error: `File type "${file.type}" is not allowed` };
+            }
+
+            return { valid: true };
+        }
+
+        // Upload file to server
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${CONFIG.orchestratorUrl}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                return {
+                    success: true,
+                    fileId: data.fileId,
+                    fileName: data.fileName,
+                    filePath: data.filePath,
+                    size: data.size
+                };
+            } catch (error) {
+                console.error('File upload error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Add file to UI
+        function addFileToUI(file, status = 'uploading') {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.dataset.fileName = file.name;
+
+            const sizeText = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <div class="file-icon">📄</div>
+                    <div class="file-details">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${sizeText}</div>
+                    </div>
+                </div>
+                <div class="file-status ${status}">${status === 'uploading' ? '⏳' : '✓'}</div>
+                <button class="remove-file-btn" title="Remove file">×</button>
+            `;
+
+            const removeBtn = fileItem.querySelector('.remove-file-btn');
+            removeBtn.addEventListener('click', () => removeFile(file.name));
+
+            filesList.appendChild(fileItem);
+            uploadedFilesList.style.display = 'block';
+
+            return fileItem;
+        }
+
+        // Update file status in UI
+        function updateFileStatus(fileName, status) {
+            const fileItem = filesList.querySelector(`[data-file-name="${fileName}"]`);
+            if (fileItem) {
+                const statusEl = fileItem.querySelector('.file-status');
+                statusEl.className = `file-status ${status}`;
+                statusEl.textContent = status === 'uploaded' ? '✓' : status === 'error' ? '❌' : '⏳';
+            }
+        }
+
+        // Handle file selection
+        async function handleFileSelection(files) {
+            for (const file of files) {
+                // Validate file
+                const validation = validateFile(file);
+                if (!validation.valid) {
+                    addMessage(`❌ ${validation.error}`, 'system');
+                    continue;
+                }
+
+                // Add to UI with uploading status
+                addFileToUI(file, 'uploading');
+
+                // Upload file
+                const result = await uploadFile(file);
+
+                if (result.success) {
+                    // Store file data
+                    uploadedFiles.push({
+                        fileId: result.fileId,
+                        fileName: result.fileName,
+                        filePath: result.filePath,
+                        size: result.size
+                    });
+
+                    // Update UI status
+                    updateFileStatus(file.name, 'uploaded');
+                    console.log(`✅ Uploaded: ${result.fileName}`);
+                } else {
+                    // Update UI status
+                    updateFileStatus(file.name, 'error');
+                    addMessage(`❌ Failed to upload "${file.name}": ${result.error}`, 'system');
+                }
+            }
+        }
+
+        // Remove file
+        function removeFile(fileName) {
+            // Remove from uploaded files array
+            uploadedFiles = uploadedFiles.filter(f => f.fileName !== fileName);
+
+            // Remove from UI
+            const fileItem = filesList.querySelector(`[data-file-name="${fileName}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+
+            // Hide list if no files
+            if (uploadedFiles.length === 0) {
+                uploadedFilesList.style.display = 'none';
+            }
+
+            console.log(`🗑️ Removed: ${fileName}`);
+        }
+
+        // Clear all files
+        function clearAllFiles() {
+            uploadedFiles = [];
+            filesList.innerHTML = '';
+            uploadedFilesList.style.display = 'none';
+            console.log('🗑️ Cleared all files');
+        }
+
+        // ========== Drag and Drop Event Handlers ==========
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileUploadZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Highlight drop zone when file is dragged over
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileUploadZone.addEventListener(eventName, () => {
+                fileUploadZone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileUploadZone.addEventListener(eventName, () => {
+                fileUploadZone.classList.remove('drag-over');
+            });
+        });
+
+        // Handle dropped files
+        fileUploadZone.addEventListener('drop', async (e) => {
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                await handleFileSelection(files);
+            }
+        });
+
+        // Handle click on upload zone
+        fileUploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Handle file input change
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                await handleFileSelection(files);
+            }
+            // Reset input so same file can be selected again
+            e.target.value = '';
+        });
+
+        // Clear all files button
+        clearFilesBtn.addEventListener('click', clearAllFiles);
+
         // Initialize
         checkConnection();
         chatInput.focus();
 
         console.log('%c🤖 WeSign AI Assistant Ready!', 'font-size: 20px; font-weight: bold; color: #667eea;');
         console.log('%cPowered by AutoGen Multi-Agent System', 'font-size: 14px; color: #764ba2;');
+        console.log('%c🎤 Voice Input: Click microphone to use Whisper', 'font-size: 12px; color: #667eea;');
         console.log('%c📊 Test Automation: Use data-status attribute to detect completion', 'font-size: 12px; color: #999;');
     </script>
 </body>

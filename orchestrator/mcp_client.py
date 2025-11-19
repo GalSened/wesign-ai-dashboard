@@ -30,7 +30,26 @@ class WeSignMCPClient:
         self.tools_cache: List[Dict[str, Any]] = []
         self._http_client = httpx.AsyncClient(timeout=30.0)
 
+        # Store template name → GUID mappings per conversation
+        # Structure: {conversation_id: {template_name: template_guid}}
+        self.template_ids: Dict[str, Dict[str, str]] = {}
+
         logger.info(f"📡 Initialized WeSignMCPClient: {self.base_url}")
+
+    def update_template_mappings(self, conversation_id: str, mappings: Dict[str, str]):
+        """
+        Update template name → GUID mappings for a conversation
+
+        This is called by the orchestrator when it fetches templates directly from the backend.
+        The MCP client uses these mappings to automatically replace template names with GUIDs
+        when tools are executed.
+
+        Args:
+            conversation_id: Conversation ID
+            mappings: Dictionary of {template_name: template_guid}
+        """
+        self.template_ids[conversation_id] = mappings
+        logger.info(f"📋 Updated template mappings for conversation {conversation_id}: {len(mappings)} templates")
 
     async def fetch_tools(self) -> List[Dict[str, Any]]:
         """
@@ -72,6 +91,38 @@ class WeSignMCPClient:
         """
         try:
             logger.info(f"🔧 Executing tool: {tool_name} with args: {arguments}")
+
+            # CRITICAL: Replace template names with GUIDs BEFORE sending to MCP server
+            # This fixes HTTP 400 errors when using templates by name
+            template_tools = [
+                'wesign_use_template',
+                'wesign_send_simple_document',
+                'wesign_get_template',
+                'wesign_update_template_fields'
+            ]
+
+            if tool_name in template_tools and 'templateId' in arguments:
+                template_name_or_id = arguments['templateId']
+
+                # Check if this looks like a name (not a GUID)
+                # GUIDs contain hyphens: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+                if '-' not in str(template_name_or_id):
+                    # This is a template name, try to find the GUID
+                    found_guid = None
+
+                    # Search all conversation mappings for this template name
+                    for conv_id, mappings in self.template_ids.items():
+                        if template_name_or_id in mappings:
+                            found_guid = mappings[template_name_or_id]
+                            logger.info(f"✅ Replaced template name '{template_name_or_id}' with GUID '{found_guid}' for {tool_name}")
+                            break
+
+                    if found_guid:
+                        arguments['templateId'] = found_guid
+                    else:
+                        logger.warning(f"⚠️  Template name '{template_name_or_id}' not found in any conversation mappings for {tool_name}")
+                else:
+                    logger.debug(f"✓ Template ID already looks like a GUID: {template_name_or_id}")
 
             response = await self._http_client.post(
                 f"{self.base_url}/execute",
