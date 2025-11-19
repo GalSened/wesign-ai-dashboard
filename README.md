@@ -1006,6 +1006,415 @@ Be more specific with keywords:
 
 ---
 
+## 🚀 Server Deployment Guide
+
+Deploy WeSign AI Assistant to a production server (Linux/Ubuntu).
+
+### Files to Manually Transfer
+
+When deploying to a server, these files are **NOT in git repositories** and must be transferred manually:
+
+#### 1. Environment Configuration Files 🔐
+
+**wesign-ai-dashboard/orchestrator/.env**
+```bash
+OPENAI_API_KEY=sk-proj-YOUR-ACTUAL-KEY
+WESIGN_MCP_URL=http://localhost:3000
+WESIGN_EMAIL=your-email@example.com
+WESIGN_PASSWORD=your-password
+HOST=0.0.0.0
+PORT=8000
+```
+
+**wesign-mcp-server/.env** (if exists)
+```bash
+PORT=3000
+# Any other WeSign-specific environment variables
+```
+
+#### 2. WeSign MCP Server Build Files
+
+The `dist/` folder is gitignored. You have two options:
+
+**Option A: Transfer pre-built files**
+```bash
+# Copy entire dist/ folder from local machine
+scp -r wesign-mcp-server/dist/ user@server:/opt/wesign-mcp-server/
+```
+
+**Option B: Build on server (recommended)**
+```bash
+# After cloning, build on server:
+cd /opt/wesign-mcp-server
+npm install
+npm run build
+```
+
+### Step-by-Step Server Deployment
+
+#### Step 1: Prepare Server Environment
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install required packages
+sudo apt install -y python3 python3-pip python3-venv nodejs npm nginx git curl
+
+# Install Node.js 18+ (if needed)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify versions
+python3 --version  # Should be 3.9+
+node --version     # Should be 16+
+npm --version
+```
+
+#### Step 2: Clone Repositories
+
+```bash
+# Create deployment directory
+sudo mkdir -p /opt
+cd /opt
+
+# Clone wesign-ai-dashboard
+sudo git clone https://github.com/GalSened/wesign-ai-dashboard.git
+sudo chown -R $USER:$USER wesign-ai-dashboard
+
+# Clone wesign-mcp-server (adjust URL to your repo)
+sudo git clone <your-wesign-mcp-server-repo-url>
+sudo chown -R $USER:$USER wesign-mcp-server
+```
+
+#### Step 3: Transfer Environment Files Securely
+
+```bash
+# From your local machine, use SCP
+scp orchestrator/.env user@server:/opt/wesign-ai-dashboard/orchestrator/.env
+
+# Or create directly on server
+nano /opt/wesign-ai-dashboard/orchestrator/.env
+# Paste your configuration and save
+```
+
+#### Step 4: Setup WeSign MCP Server
+
+```bash
+cd /opt/wesign-mcp-server
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Verify dist/ folder exists
+ls -la dist/
+
+# Install PM2 for process management
+sudo npm install -g pm2
+
+# Start WeSign MCP Server
+pm2 start dist/mcp-http-server.js --name wesign-mcp
+
+# Configure PM2 to start on boot
+pm2 save
+pm2 startup
+# Follow the command output instructions
+
+# Check status
+pm2 status
+pm2 logs wesign-mcp
+```
+
+#### Step 5: Setup Python Orchestrator
+
+```bash
+cd /opt/wesign-ai-dashboard/orchestrator
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Upgrade pip
+pip install --upgrade pip
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Test the application
+python main.py
+# Press Ctrl+C to stop after verifying it starts
+```
+
+#### Step 6: Create Systemd Service for Orchestrator
+
+```bash
+# Create systemd service file
+sudo nano /etc/systemd/system/wesign-orchestrator.service
+```
+
+Paste this configuration:
+
+```ini
+[Unit]
+Description=WeSign AI Orchestrator
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/wesign-ai-dashboard/orchestrator
+Environment="PATH=/opt/wesign-ai-dashboard/orchestrator/venv/bin"
+ExecStart=/opt/wesign-ai-dashboard/orchestrator/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# Set permissions
+sudo chown -R www-data:www-data /opt/wesign-ai-dashboard
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable service
+sudo systemctl enable wesign-orchestrator
+
+# Start service
+sudo systemctl start wesign-orchestrator
+
+# Check status
+sudo systemctl status wesign-orchestrator
+
+# View logs
+sudo journalctl -u wesign-orchestrator -f
+```
+
+#### Step 7: Configure Firewall
+
+```bash
+# Allow required ports
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+sudo ufw allow 22/tcp    # SSH (if not already enabled)
+
+# Internal ports (only if accessing from outside)
+# sudo ufw allow 8000/tcp  # Orchestrator (not recommended, use Nginx)
+# sudo ufw allow 3000/tcp  # WeSign MCP (not recommended, use Nginx)
+
+# Enable firewall
+sudo ufw enable
+
+# Check status
+sudo ufw status
+```
+
+#### Step 8: Setup Nginx Reverse Proxy
+
+```bash
+# Create Nginx configuration
+sudo nano /etc/nginx/sites-available/wesign
+```
+
+Paste this configuration:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;  # Replace with your domain or IP
+
+    # Increase max body size for file uploads
+    client_max_body_size 25M;
+
+    # Main application
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # WeSign MCP Server (if needed externally)
+    location /mcp/ {
+        proxy_pass http://localhost:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+```bash
+# Enable the site
+sudo ln -s /etc/nginx/sites-available/wesign /etc/nginx/sites-enabled/
+
+# Remove default site (optional)
+sudo rm /etc/nginx/sites-enabled/default
+
+# Test Nginx configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+
+# Check status
+sudo systemctl status nginx
+```
+
+#### Step 9: Setup SSL with Let's Encrypt (Production)
+
+```bash
+# Install Certbot
+sudo apt install -y certbot python3-certbot-nginx
+
+# Obtain SSL certificate
+sudo certbot --nginx -d your-domain.com
+
+# Follow the prompts
+# Certbot will automatically configure Nginx for HTTPS
+
+# Test auto-renewal
+sudo certbot renew --dry-run
+
+# Certificate will auto-renew
+```
+
+#### Step 10: Verify Deployment
+
+```bash
+# Check all services
+pm2 status                              # WeSign MCP Server
+sudo systemctl status wesign-orchestrator  # Orchestrator
+sudo systemctl status nginx             # Nginx
+
+# Check health endpoint
+curl http://localhost:8000/health
+curl http://your-domain.com/health
+
+# Check logs
+pm2 logs wesign-mcp
+sudo journalctl -u wesign-orchestrator -f
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+```
+
+#### Step 11: Monitor and Maintain
+
+```bash
+# View orchestrator logs
+sudo journalctl -u wesign-orchestrator -f
+
+# View WeSign MCP logs
+pm2 logs wesign-mcp
+
+# Restart services
+sudo systemctl restart wesign-orchestrator
+pm2 restart wesign-mcp
+
+# Update application
+cd /opt/wesign-ai-dashboard
+git pull
+sudo systemctl restart wesign-orchestrator
+
+cd /opt/wesign-mcp-server
+git pull
+npm install
+npm run build
+pm2 restart wesign-mcp
+```
+
+### Server Deployment Checklist
+
+- [ ] Server has Python 3.9+, Node.js 16+, Nginx
+- [ ] Both repositories cloned to `/opt/`
+- [ ] `.env` files transferred securely
+- [ ] WeSign MCP Server built and running (PM2)
+- [ ] Python dependencies installed in venv
+- [ ] Orchestrator running as systemd service
+- [ ] Firewall configured (ports 80, 443)
+- [ ] Nginx reverse proxy configured
+- [ ] SSL certificate installed (Let's Encrypt)
+- [ ] Health endpoints responding correctly
+- [ ] Logs being monitored
+- [ ] Auto-start on reboot configured
+
+### Production Best Practices
+
+1. **Security:**
+   - Use HTTPS in production (SSL certificates)
+   - Keep `.env` files secure (600 permissions)
+   - Use secrets management (e.g., HashiCorp Vault)
+   - Regularly update dependencies
+   - Enable firewall with minimal open ports
+
+2. **Monitoring:**
+   - Setup log rotation: `sudo nano /etc/logrotate.d/wesign`
+   - Monitor disk space for uploaded files
+   - Setup health check monitoring (UptimeRobot, etc.)
+   - Configure alerts for service failures
+
+3. **Backups:**
+   - Backup `.env` files regularly
+   - Backup uploaded files directory
+   - Backup database (if applicable)
+   - Document server configuration
+
+4. **Performance:**
+   - Use a CDN for static assets
+   - Enable Nginx caching
+   - Monitor resource usage (CPU, RAM, disk)
+   - Scale horizontally if needed (load balancer)
+
+### Common Server Issues
+
+**Issue: Port 8000 already in use**
+```bash
+sudo lsof -i :8000
+sudo kill -9 <PID>
+sudo systemctl restart wesign-orchestrator
+```
+
+**Issue: Permission denied**
+```bash
+sudo chown -R www-data:www-data /opt/wesign-ai-dashboard
+sudo chmod 600 /opt/wesign-ai-dashboard/orchestrator/.env
+```
+
+**Issue: Service won't start**
+```bash
+sudo journalctl -u wesign-orchestrator -n 50
+sudo systemctl status wesign-orchestrator
+```
+
+**Issue: Nginx 502 Bad Gateway**
+```bash
+# Check orchestrator is running
+sudo systemctl status wesign-orchestrator
+curl http://localhost:8000/health
+
+# Check Nginx error logs
+sudo tail -f /var/log/nginx/error.log
+```
+
+---
+
 ## 📊 System Status
 
 **Current Version**: 2.0.0-native-mcp
