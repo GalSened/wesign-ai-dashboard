@@ -13,10 +13,10 @@ WeSign AI Assistant is a sophisticated multi-agent orchestration system built wi
 
 ### Key Features
 
-✅ **5 Specialized AI Agents** - Document, Signing, Template, Admin, and FileSystem agents
+✅ **4 Specialized AI Agents** - Document, Signing, Template, and Admin agents
 ✅ **Native MCP Integration** - AutoGen v0.7.5 with built-in MCP protocol support
-✅ **14 FileSystem Tools** - Secure local file operations with MCP
-✅ **WeSign MCP Server** - HTTP-based MCP for document operations (configurable)
+✅ **Drag-and-Drop File Upload** - Upload documents directly from browser (PDF, Word, Excel, Images)
+✅ **WeSign MCP Server** - HTTP-based MCP for document operations with 50+ tools
 ✅ **Voice-to-Text** - OpenAI Whisper API integration for voice commands
 ✅ **OpenAI GPT-4** - Powered by state-of-the-art language model
 ✅ **Official ChatKit Python SDK** - OpenAI's official ChatKit server implementation
@@ -157,15 +157,16 @@ User Message → ChatKit UI → /chatkit endpoint → ChatKitServer.respond()
 
 ## ✨ Features
 
-### 1. Multi-Agent System (5 Specialists)
+### 1. Multi-Agent System (4 Specialists)
 
 | Agent | Purpose | MCP Tools |
 |-------|---------|-----------|
-| **DocumentAgent** | Upload, list, manage documents | WeSign MCP |
-| **SigningAgent** | Create & complete digital signatures | WeSign MCP |
-| **TemplateAgent** | Manage and use document templates | WeSign MCP |
+| **DocumentAgent** | Upload, list, manage documents | WeSign MCP (50+ tools) |
+| **SigningAgent** | Create & complete digital signatures | WeSign MCP (50+ tools) |
+| **TemplateAgent** | Manage and use document templates | WeSign MCP (50+ tools) |
 | **AdminAgent** | General assistance and guidance | None |
-| **FileSystemAgent** | Browse and select local files | FileSystem MCP (14 tools) |
+
+**Note:** FileSystemAgent has been replaced with browser-based drag-and-drop file upload for better security and user experience.
 
 ### 2. Voice-to-Text Integration 🎤
 
@@ -194,45 +195,52 @@ User Voice → MediaRecorder API → Audio Blob → /api/speech-to-text
 
 **See**: `VOICE_FEATURE_DOCUMENTATION.md` for complete implementation details
 
-### 3. FileSystem MCP Tools (14 Available)
+### 3. Drag-and-Drop File Upload 📎
 
-Secure file system operations:
+Browser-based secure file upload without filesystem access:
 
-- `list_allowed_directories` - Show accessible directories
-- `list_directory` - List directory contents
-- `read_file` - Read file contents
-- `read_multiple_files` - Batch file reading
-- `write_file` - Create/update files
-- `create_directory` - Create new directories
-- `move_file` - Move/rename files
-- `search_files` - Search by pattern
-- `get_file_info` - Get file metadata
-- ... and 5 more!
+**Features:**
+- 🖱️ Drag and drop files directly onto chat interface
+- 📂 Browse files using file picker
+- ✅ Real-time file validation (type and size)
+- 📊 Upload progress tracking
+- 🗑️ Individual file removal or clear all
+- 💾 Automatic server-side storage
+- 🔒 No direct filesystem access required
 
-**Security**: Only accesses allowed directories:
-- `~/Documents`
-- `~/Downloads`
-- `/tmp/wesign-assistant`
+**Supported File Types:**
+- PDF documents (.pdf)
+- Word documents (.doc, .docx)
+- Excel spreadsheets (.xls, .xlsx)
+- Images (.png, .jpg, .jpeg)
+
+**Security:**
+- ✅ Client-side validation before upload
+- ✅ Server-side validation and virus scanning
+- ✅ Temporary storage with auto-cleanup
+- ✅ 25MB file size limit
+- ✅ No direct filesystem browsing (sandbox security)
 
 ### 4. WeSign MCP Server (HTTP-based) 🌐
 
 **Configuration:**
 - Server URL: `http://localhost:3000` (configurable via `WESIGN_MCP_URL`)
 - Protocol: HTTP with StreamableHttpServerParams
-- Graceful fallback when server unavailable
+- 50+ WeSign tools available
 - Ready for document operations, signing workflows, template management
 
-**Status**: Enabled and ready for testing (start WeSign MCP server to activate tools)
+**Status**: Enabled and operational (requires WeSign MCP server running on port 3000)
 
 ### 5. Intelligent Agent Selection
 
 Automatic routing based on user intent:
 
 ```python
-"List files in Documents" → FileSystemAgent
+"Upload this document" → DocumentAgent
 "Sign this document" → SigningAgent
 "Show my templates" → TemplateAgent
 "Help me get started" → AdminAgent
+"List my documents" → DocumentAgent
 ```
 
 ---
@@ -247,87 +255,307 @@ Automatic routing based on user intent:
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Step-by-Step Launch Guide
 
-### 1. Clone & Setup
+Follow these steps to launch the WeSign AI Assistant system from scratch:
+
+### Step 1: Prerequisites Check ✅
+
+Before starting, ensure you have:
 
 ```bash
+# Check Python version (3.9+ required, 3.12 recommended)
+python --version
+
+# Check Node.js version (16+ required for WeSign MCP)
+node --version
+
+# Check Git
+git --version
+```
+
+**Required:**
+- ✅ Python 3.9+ (3.12 recommended)
+- ✅ Node.js 16+ (for WeSign MCP Server)
+- ✅ OpenAI API Key ([Get one here](https://platform.openai.com/api-keys))
+- ✅ 4GB RAM minimum (8GB recommended)
+- ✅ Modern web browser (Chrome, Firefox, Edge, or Safari)
+
+### Step 2: Clone Repository 📦
+
+```bash
+# Navigate to your projects directory
 cd /path/to/your/projects
-git clone <repository-url>
-cd wesign-ai-dashboard/orchestrator
+
+# Clone the repository
+git clone https://github.com/GalSened/wesign-ai-dashboard.git
+
+# Enter project directory
+cd wesign-ai-dashboard
+```
+
+### Step 3: Start WeSign MCP Server 🌐
+
+**Terminal 1 - WeSign MCP Server:**
+
+```bash
+# Navigate to WeSign MCP Server directory
+cd /c/Users/gals/Desktop/wesign-mcp-server
+
+# Install dependencies (first time only)
+npm install
+
+# Start the WeSign MCP Server on port 3000
+node dist/mcp-http-server.js
+```
+
+**Expected output:**
+```
+🚀 WeSign MCP Server running on http://localhost:3000
+✅ Ready to accept connections
+```
+
+**Keep this terminal running** - the server must stay active for WeSign features.
+
+### Step 4: Setup Python Environment 🐍
+
+**Terminal 2 - Main Application:**
+
+```bash
+# Navigate to orchestrator directory
+cd /path/to/wesign-ai-dashboard/orchestrator
 
 # Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv venv
 
-# Install dependencies
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+
+# macOS/Linux:
+source venv/bin/activate
+
+# Upgrade pip
+python -m pip install --upgrade pip
+
+# Install all dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+**Expected output:**
+```
+Successfully installed autogen-agentchat-0.7.5 autogen-core-0.7.5 autogen-ext-0.7.5 ...
+```
+
+### Step 5: Configure Environment Variables 🔧
 
 ```bash
 # Copy environment template
 cp .env.example .env
 
-# Edit .env and add your OpenAI API key
-nano .env  # or vim/code .env
+# Edit .env file with your preferred editor
+# Windows:
+notepad .env
+
+# macOS/Linux:
+nano .env
 ```
 
-**Required configuration:**
+**Required configuration in `.env`:**
 
 ```bash
 # OpenAI Configuration (REQUIRED)
-OPENAI_API_KEY=sk-proj-YOUR-KEY-HERE
+OPENAI_API_KEY=sk-proj-YOUR-ACTUAL-KEY-HERE
 
-# FileSystem MCP Configuration
-FILESYSTEM_ALLOWED_DIRS=$HOME/Documents,$HOME/Downloads,/tmp/wesign-assistant
-
-# WeSign MCP Configuration (Optional - for document operations)
+# WeSign MCP Server Configuration
 WESIGN_MCP_URL=http://localhost:3000
+
+# WeSign Credentials (for auto-login in UI)
+WESIGN_EMAIL=your-email@example.com
+WESIGN_PASSWORD=your-password
 
 # Server Configuration
 HOST=0.0.0.0
 PORT=8000
 ```
 
-### 3. Start the System
+**⚠️ Important:**
+- Replace `sk-proj-YOUR-ACTUAL-KEY-HERE` with your real OpenAI API key
+- Replace email/password with your WeSign credentials
+- Never commit `.env` to version control
 
-**Option A: Use startup script (recommended)**
+### Step 6: Start the Orchestrator 🚀
 
-```bash
-cd /path/to/wesign-ai-dashboard
-./scripts/start-all.sh
-```
-
-**Option B: Manual start**
+**In Terminal 2 (with venv activated):**
 
 ```bash
-cd orchestrator
-source venv/bin/activate
+# Make sure you're in the orchestrator directory
+cd /path/to/wesign-ai-dashboard/orchestrator
+
+# Start the FastAPI server
 python main.py
 ```
 
-**Expected Output:**
+**Expected output:**
 ```
-🤖 Initializing AutoGen agents with native MCP...
+🚀 ORCHESTRATOR_NEW.PY LOADED - WITH DRAG-AND-DROP + REFLECTION PATTERN
+📍 File: orchestrator_new.py (NOT orchestrator.py)
+✨ Features: Hebrew/English support + Drag-and-drop file upload + Response formatting
+🤖 Initializing AutoGen agents with WeSign MCP...
+
 🔧 Initializing WeSign MCP server...
 📡 Connecting to WeSign MCP at: http://localhost:3000
-⚠️  WeSign MCP unavailable - continuing with 0 tools (start WeSign server to enable)
-🗂️  Initializing FileSystem MCP server...
-✅ FileSystem MCP: 14 tools available
-📁 Allowed directories: ['/Users/you/Documents', '/Users/you/Downloads', '/tmp/wesign-assistant']
-✅ Initialized 5 agents with 2 MCP tool categories
+✅ WeSign MCP: [X] tools available
+
+✅ Initialized 5 agents with WeSign MCP tools:
+   👤 Admin Agent: General assistance and guidance
+   📄 Document Agent: Upload and manage documents (WeSign tools)
+   ✍️  Signing Agent: Create and complete signatures (WeSign tools)
+   📋 Template Agent: Manage document templates (WeSign tools)
+   📁 Filesystem Agent (REMOVED - use drag-and-drop instead)
+
+🌟 MCP Tools Available:
+   📡 WeSign tools: [X]
+   🎯 Ready for document operations!
+
 🚀 Starting FastAPI server...
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [XXXX] using WatchFiles
+INFO:     Started server process [XXXX]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
 ```
 
-### 4. Access the Application
+**Keep this terminal running** - this is your main application server.
 
-- **🌐 ChatKit UI**: http://localhost:8000/ui
+### Step 7: Access the Application 🌐
+
+Open your web browser and navigate to:
+
+- **🌐 Main UI (Login)**: http://localhost:8000/login
+- **💬 Chat Interface**: http://localhost:8000/ui (after login)
 - **🏥 Health Check**: http://localhost:8000/health
 - **📚 API Docs**: http://localhost:8000/docs
-- **🔧 API Root**: http://localhost:8000/
+
+### Step 8: Login to WeSign 🔐
+
+1. Open http://localhost:8000/login
+2. Enter your WeSign credentials:
+   - Email: The email from your `.env` file
+   - Password: The password from your `.env` file
+3. Check "Keep me signed in" (optional)
+4. Click "Sign In to WeSign"
+
+**Expected:** Redirects to http://localhost:8000/ui (Chat Interface)
+
+### Step 9: Verify System Status ✅
+
+**Test 1 - Health Check:**
+```bash
+curl http://localhost:8000/health
+```
+
+**Expected response:**
+```json
+{
+  "status": "healthy",
+  "version": "v2.9-drag-and-drop-2025-11-19",
+  "orchestrator": "orchestrator_new.py",
+  "agents": {
+    "total_agents": 5,
+    "agents": ["admin", "document", "signing", "template"]
+  },
+  "mcp_integration": {
+    "wesign": {
+      "status": "connected",
+      "url": "http://localhost:3000",
+      "tools_count": 50
+    }
+  }
+}
+```
+
+**Test 2 - Available Tools:**
+```bash
+curl http://localhost:8000/api/tools
+```
+
+**Test 3 - Chat in Browser:**
+
+In the chat interface at http://localhost:8000/ui, try:
+
+```
+💬 "Hello! What can you help me with?"
+💬 "List my recent documents"
+💬 "Show me my templates"
+```
+
+### Step 10: Test File Upload 📎
+
+1. In the chat interface, look for the drag-and-drop zone
+2. Drag a PDF, Word, or Excel file onto the zone
+3. See the file appear in the "Attached Files" section
+4. Send a message: "Please summarize this document"
+5. The AI will process the uploaded file
+
+**Supported file types:**
+- PDF (.pdf)
+- Word (.doc, .docx)
+- Excel (.xls, .xlsx)
+- Images (.png, .jpg, .jpeg)
+
+**File size limit:** 25MB per file
+
+### Step 11: Optional - Voice Input 🎤
+
+1. Click the microphone button (🎤) in the chat interface
+2. Allow microphone permissions when prompted
+3. Speak your command clearly
+4. Click stop (⏹️) when finished
+5. Review the transcribed text
+6. Click Send or press Enter
+
+---
+
+## 🎯 Quick Reference
+
+### Starting the System (After Initial Setup)
+
+**Every time you want to use the system:**
+
+```bash
+# Terminal 1 - WeSign MCP Server
+cd /c/Users/gals/Desktop/wesign-mcp-server
+node dist/mcp-http-server.js
+
+# Terminal 2 - Main Application
+cd /path/to/wesign-ai-dashboard/orchestrator
+venv\Scripts\activate  # Windows
+# OR: source venv/bin/activate  # macOS/Linux
+python main.py
+```
+
+**Then open:** http://localhost:8000/login
+
+### Stopping the System
+
+```bash
+# In Terminal 1 (WeSign MCP):
+Ctrl+C
+
+# In Terminal 2 (Main Application):
+Ctrl+C
+```
+
+### Application URLs
+
+| URL | Purpose |
+|-----|---------|
+| http://localhost:8000/login | Login page |
+| http://localhost:8000/ui | Main chat interface (after login) |
+| http://localhost:8000/health | System health check |
+| http://localhost:8000/docs | API documentation |
+| http://localhost:3000 | WeSign MCP Server |
 
 ---
 
