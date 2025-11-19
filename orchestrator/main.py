@@ -7,13 +7,16 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import logging
 import os
 import tempfile
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import secrets
 from openai import OpenAI
@@ -28,11 +31,12 @@ load_dotenv(override=True)
 api_key_from_dotenv = os.getenv("OPENAI_API_KEY")
 if api_key_from_dotenv:
     os.environ["OPENAI_API_KEY"] = api_key_from_dotenv
-    print(f"[STARTUP] Explicitly set OPENAI_API_KEY in environment: {api_key_from_dotenv[:20]}...")
+    print(f"[STARTUP] OpenAI API Key: {'SET ✓' if api_key_from_dotenv else 'NOT SET ✗'}")
 
 from orchestrator_new import WeSignOrchestrator
 from chatkit_store import InMemoryStore
 from chatkit_server import WeSignChatKitServer
+import config
 
 # Configure logging with DEBUG level to capture all details
 logging.basicConfig(
@@ -48,6 +52,9 @@ logger.info("=" * 100)
 logger.info("🚀 MAIN.PY STARTING - IMPORTS orchestrator_new.py")
 logger.info("=" * 100)
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Initialize FastAPI
 app = FastAPI(
     title="WeSign AI Assistant Orchestrator",
@@ -55,13 +62,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS middleware - configured for security
+logger.info(f"🔒 CORS allowed origins: {config.ALLOWED_ORIGINS}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=config.ALLOWED_ORIGINS,  # Whitelist specific origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=config.ALLOWED_METHODS,  # Only needed methods
+    allow_headers=config.ALLOWED_HEADERS,  # Only needed headers
 )
 
 # Mount static files for frontend
@@ -104,6 +117,29 @@ chatkit_server: Optional[WeSignChatKitServer] = None
 chatkit_store: Optional[InMemoryStore] = None
 temp_files: Dict[str, str] = {}  # fileId -> file path mapping
 session_tokens: Dict[str, Dict[str, Any]] = {}  # token -> session data
+
+# Session token configuration (use config constants)
+SESSION_TOKEN_EXPIRY_HOURS = config.SESSION_TOKEN_EXPIRY_HOURS
+
+def is_token_expired(token_data: Dict[str, Any]) -> bool:
+    """
+    Check if a session token has expired
+
+    Args:
+        token_data: Session token data dictionary
+
+    Returns:
+        True if token is expired, False otherwise
+    """
+    expires_at = token_data.get("expires_at")
+    if not expires_at:
+        return True  # No expiration = treat as expired for security
+
+    try:
+        expiry_time = datetime.fromisoformat(expires_at)
+        return datetime.utcnow() > expiry_time
+    except (ValueError, TypeError):
+        return True  # Invalid expiration = treat as expired
 
 @app.on_event("startup")
 async def startup_event():
@@ -190,7 +226,8 @@ async def serve_legacy_ui():
     raise HTTPException(status_code=404, detail="Legacy UI not found")
 
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...)):
+@limiter.limit(config.RATE_LIMIT_UPLOAD)
+async def upload_file(request: Request, file: UploadFile = File(...)):
     """
     Upload file endpoint
     Saves file temporarily for agent processing
@@ -227,6 +264,7 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/wesign-login")
+@limiter.limit(config.RATE_LIMIT_LOGIN)  # Strict limit to prevent brute force
 async def wesign_login(request: Request):
     """
     WeSign authentication endpoint
@@ -269,13 +307,14 @@ async def wesign_login(request: Request):
         # Generate auth token for our session
         auth_token = secrets.token_urlsafe(32)
 
-        # Store auth session
+        # Store auth session with expiration
         session_tokens[auth_token] = {
             "email": email,
             "user_name": email.split('@')[0],  # Use email prefix as name
             "authenticated": True,
             "wesign_session": login_data.get("data"),
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(hours=SESSION_TOKEN_EXPIRY_HOURS)).isoformat()
         }
 
         logger.info(f"✅ WeSign login successful for {email}")
@@ -354,7 +393,8 @@ def validate_message_security(message: str) -> tuple[bool, str]:
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+@limiter.limit(config.RATE_LIMIT_CHAT)  # Limit chat requests to prevent API abuse
+async def chat(request: Request, chat_request: ChatRequest):
     """
     Main chat endpoint
     Processes messages through AutoGen orchestrator
@@ -366,23 +406,23 @@ async def chat(request: ChatRequest):
         )
 
     try:
-        logger.info(f"💬 Chat request from {request.context.userName}: {request.message[:50]}...")
+        logger.info(f"💬 Chat request from {chat_request.context.userName}: {chat_request.message[:50]}...")
 
         # Security guard: Validate message
-        is_valid, error_message = validate_message_security(request.message)
+        is_valid, error_message = validate_message_security(chat_request.message)
         if not is_valid:
             logger.warning(f"🚫 Message rejected: {error_message}")
             return ChatResponse(
                 response=error_message,
-                conversationId=request.context.conversationId or f"rejected-{datetime.now().timestamp()}",
+                conversationId=chat_request.context.conversationId or f"rejected-{datetime.now().timestamp()}",
                 toolCalls=None,
                 metadata={"rejected": True, "reason": "security_validation"}
             )
 
         # Prepare file paths for agents
         file_paths = []
-        if request.files:
-            for file_info in request.files:
+        if chat_request.files:
+            for file_info in chat_request.files:
                 if file_info.fileId in temp_files:
                     file_paths.append({
                         "fileName": file_info.fileName,
@@ -391,11 +431,11 @@ async def chat(request: ChatRequest):
 
         # Process through orchestrator
         result = await orchestrator.process_message(
-            message=request.message,
-            user_id=request.context.userId,
-            company_id=request.context.companyId,
-            user_name=request.context.userName,
-            conversation_id=request.context.conversationId,
+            message=chat_request.message,
+            user_id=chat_request.context.userId,
+            company_id=chat_request.context.companyId,
+            user_name=chat_request.context.userName,
+            conversation_id=chat_request.context.conversationId,
             files=file_paths
         )
 
@@ -470,10 +510,18 @@ async def chatkit_endpoint(request: Request):
         if auth_header.startswith("Bearer "):
             client_secret = auth_header.replace("Bearer ", "")
 
-        # Get user context from session token
+        # Get user context from session token with expiration check
         user_context = {}
         if client_secret and client_secret in session_tokens:
             session_data = session_tokens[client_secret]
+
+            # Check if token is expired
+            if is_token_expired(session_data):
+                logger.warning(f"⚠️ Expired token used for ChatKit request")
+                # Remove expired token
+                del session_tokens[client_secret]
+                raise HTTPException(status_code=401, detail="Session token expired. Please log in again.")
+
             user_context = {
                 "user_id": session_data.get("user_id", "demo-user"),
                 "company_id": session_data.get("company_id", "demo-company"),
@@ -538,13 +586,13 @@ async def create_session(request: Request):
         # Generate secure session token
         session_token = secrets.token_urlsafe(32)
 
-        # Store session data
+        # Store session data with expiration
         session_tokens[session_token] = {
             "user_id": user_id,
             "company_id": company_id,
             "user_name": user_name,
             "created_at": datetime.utcnow().isoformat(),
-            "expires_at": None  # No expiration for demo
+            "expires_at": (datetime.utcnow() + timedelta(hours=SESSION_TOKEN_EXPIRY_HOURS)).isoformat()
         }
 
         logger.info(f"🎫 Created ChatKit session for {user_name}")
@@ -588,13 +636,13 @@ async def create_chatkit_session(request: Request):
         # Generate client token (32-byte URL-safe base64)
         client_secret = secrets.token_urlsafe(32)
 
-        # Store token with user context for our ChatKit endpoint
+        # Store token with user context and expiration for our ChatKit endpoint
         session_tokens[client_secret] = {
             "user_id": user_id,
             "company_id": company_id,
             "user_name": user_name,
             "created_at": datetime.utcnow().isoformat(),
-            "expires_at": None  # No expiration for demo
+            "expires_at": (datetime.utcnow() + timedelta(hours=SESSION_TOKEN_EXPIRY_HOURS)).isoformat()
         }
 
         logger.info(f"🔑 Created ChatKit session for {user_name}")
@@ -631,7 +679,8 @@ async def chatkit_status():
         return {"status": "error", "error": str(e)}
 
 @app.post("/api/speech-to-text")
-async def speech_to_text(file: UploadFile = File(...)):
+@limiter.limit(config.RATE_LIMIT_SPEECH)  # Strict limit as Whisper API is expensive
+async def speech_to_text(request: Request, file: UploadFile = File(...)):
     """
     Speech-to-text transcription using OpenAI Whisper API
 
@@ -642,13 +691,7 @@ async def speech_to_text(file: UploadFile = File(...)):
         logger.info(f"🎤 Transcription request: {file.filename} ({file.content_type})")
 
         # Validate file type
-        allowed_types = [
-            'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/mpeg',
-            'audio/mpga', 'audio/m4a', 'audio/wav', 'audio/webm',
-            'audio/x-wav', 'audio/wave'
-        ]
-
-        if file.content_type not in allowed_types:
+        if file.content_type not in config.ALLOWED_AUDIO_TYPES:
             logger.warning(f"⚠️ Unsupported audio type: {file.content_type}")
             # Still try to process it as Whisper is flexible
 
@@ -658,10 +701,10 @@ async def speech_to_text(file: UploadFile = File(...)):
         logger.info(f"📊 Audio file size: {file_size} bytes")
 
         # Check file size (Whisper API has 25MB limit)
-        if file_size > 25 * 1024 * 1024:
+        if file_size > config.MAX_AUDIO_SIZE_BYTES:
             raise HTTPException(
                 status_code=400,
-                detail="Audio file too large. Maximum size is 25MB."
+                detail=f"Audio file too large. Maximum size is {config.MAX_FILE_SIZE_MB}MB."
             )
 
         if file_size == 0:
@@ -729,16 +772,12 @@ async def speech_to_text(file: UploadFile = File(...)):
 if __name__ == "__main__":
     import uvicorn
 
-    # Read host and port from environment variables
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))  # Default to 8000 if not set
-
-    logger.info(f"🚀 Starting server on {host}:{port}")
+    logger.info(f"🚀 Starting server on {config.SERVER_HOST}:{config.SERVER_PORT}")
 
     uvicorn.run(
         "main:app",
-        host=host,
-        port=port,
+        host=config.SERVER_HOST,
+        port=config.SERVER_PORT,
         reload=False,
         log_level="info"
     )
