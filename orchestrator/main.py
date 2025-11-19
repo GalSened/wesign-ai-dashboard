@@ -295,6 +295,64 @@ async def wesign_login(request: Request):
         logger.error(f"❌ Login error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+def validate_message_security(message: str) -> tuple[bool, str]:
+    """
+    Security guard: Validate message to refuse off-topic and sensitive data questions
+
+    Returns:
+        (is_valid, error_message) - (True, "") if valid, (False, error_message) if rejected
+    """
+    message_lower = message.lower()
+
+    # Define WeSign-related keywords
+    wesign_keywords = [
+        "sign", "signature", "document", "template", "field", "pdf", "upload",
+        "download", "signer", "recipient", "complete", "status", "חתימה", "מסמך",
+        "תבנית", "שדה", "העלה", "הורד", "חותם", "חתום", "שלח"
+    ]
+
+    # Define sensitive data patterns to refuse
+    sensitive_patterns = [
+        "password", "token", "secret", "api key", "credential", "private key",
+        "ssh key", "certificate", "sensitive", "confidential", "סיסמה", "מפתח",
+        "סודי", "חסוי", "עד־טעון"
+    ]
+
+    # Define off-topic patterns to refuse
+    off_topic_patterns = [
+        "weather", "stock", "news", "recipe", "sports", "movie", "music",
+        "travel", "restaurant", "shopping", "game", "joke", "story",
+        "מזג אוויר", "מניות", "חדשות", "מתכון", "ספורט", "סרט", "מוסיקה",
+        "טיול", "מסעדה", "קניות", "משחק", "בדיחה", "סיפור"
+    ]
+
+    # Check for sensitive data questions
+    for pattern in sensitive_patterns:
+        if pattern in message_lower:
+            return (False, "I cannot assist with questions about sensitive data, credentials, or confidential information. Please ask about WeSign document signing features instead.")
+
+    # Check if message is related to WeSign (allow if ANY keyword found)
+    is_wesign_related = any(keyword in message_lower for keyword in wesign_keywords)
+
+    # Check if message is off-topic
+    is_off_topic = any(pattern in message_lower for pattern in off_topic_patterns)
+
+    # If off-topic and NOT WeSign-related, refuse
+    if is_off_topic and not is_wesign_related:
+        return (False, "I can only assist with WeSign document signing features. Please ask about signatures, documents, templates, or signing workflows.")
+
+    # If message is too short and not WeSign-related, may be off-topic
+    if len(message) < 15 and not is_wesign_related:
+        # Allow common greetings
+        greetings = ["hi", "hello", "hey", "thanks", "thank you", "שלום", "היי", "תודה"]
+        if any(greeting in message_lower for greeting in greetings):
+            return (True, "")
+        # Otherwise may be too vague
+        return (False, "Please ask a specific question about WeSign document signing features.")
+
+    return (True, "")
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
@@ -309,6 +367,17 @@ async def chat(request: ChatRequest):
 
     try:
         logger.info(f"💬 Chat request from {request.context.userName}: {request.message[:50]}...")
+
+        # Security guard: Validate message
+        is_valid, error_message = validate_message_security(request.message)
+        if not is_valid:
+            logger.warning(f"🚫 Message rejected: {error_message}")
+            return ChatResponse(
+                response=error_message,
+                conversationId=request.context.conversationId or f"rejected-{datetime.now().timestamp()}",
+                toolCalls=None,
+                metadata={"rejected": True, "reason": "security_validation"}
+            )
 
         # Prepare file paths for agents
         file_paths = []
