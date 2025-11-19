@@ -23,6 +23,10 @@ from forced_tool_model_client import ForcedToolModelClient
 
 logger = logging.getLogger(__name__)
 
+# Version marker for debugging
+ORCHESTRATOR_VERSION = "v2.8-debug-backend-fetch-2025-11-17-15:25"
+logger.info(f"🔖 Loading orchestrator_new.py version: {ORCHESTRATOR_VERSION}")
+
 
 class WeSignOrchestrator:
     """Orchestrator managing AutoGen agents with native MCP integration"""
@@ -31,6 +35,7 @@ class WeSignOrchestrator:
         """Initialize orchestrator with MCP servers"""
         self.agents = {}
         self.conversations = {}  # Store conversation history by conversation_id
+        self.template_ids = {}  # Store template name->ID mappings by conversation_id
         self.mcp_tools = {}  # Store MCP tools by category
         self.wesign_client = None  # WeSign MCP HTTP client
         self.filesystem_client = None  # FileSystem MCP stdio client
@@ -132,6 +137,89 @@ class WeSignOrchestrator:
 # TEMPORARILY DISABLED:             logger.warning("⚠️  FileSystem MCP unavailable - continuing with 0 tools")
             self.mcp_tools["filesystem"] = []
 
+    async def _fetch_template_data_from_backend(self, conversation_id: str, limit: int = 100) -> dict:
+        """
+        Fetch full template data directly from backend API (bypassing MCP server).
+        The MCP server strips the templateId field, so we go direct to get complete data.
+
+        Args:
+            conversation_id: Conversation ID to get auth token from
+            limit: Number of templates to fetch
+
+        Returns:
+            Dict with template name -> ID mappings
+        """
+        logger.info(f"🔧 _fetch_template_data_from_backend CALLED for conversation: {conversation_id}")
+        try:
+            # Authenticate directly with backend API to get our own access token
+            backend_url = os.getenv("WESIGN_BACKEND_URL", "https://devtest.comda.co.il")
+            login_url = f"{backend_url}/userapi/ui/v3/Users/Login"
+
+            logger.info(f"🔐 Authenticating directly with backend API: {login_url}")
+
+            import httpx
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                # Step 1: Login to backend to get access token
+                login_response = await client.post(
+                    login_url,
+                    json={
+                        "email": os.getenv("WESIGN_EMAIL", "nirk@comsign.co.il"),
+                        "password": os.getenv("WESIGN_PASSWORD", "Comsign1!"),
+                        "persistent": False
+                    }
+                )
+
+                logger.info(f"📡 Login Response Status: {login_response.status_code}")
+                login_response.raise_for_status()
+                login_data = login_response.json()
+
+                access_token = login_data.get("token")
+                if not access_token:
+                    logger.error(f"❌ No access token in login response. Keys: {list(login_data.keys())}")
+                    return {}
+
+                logger.info("✅ Successfully authenticated with backend API")
+
+                # Step 2: Fetch template data from backend using the access token
+                api_url = f"{backend_url}/userapi/ui/v3/Templates?limit={limit}"
+                logger.info(f"🔍 Fetching full template data from backend: {api_url}")
+
+                response = await client.get(
+                    api_url,
+                    headers={"Authorization": f"Bearer {access_token}"}
+                )
+
+                # Detailed logging for debugging
+                logger.info(f"📡 Backend API Response Status: {response.status_code}")
+                response.raise_for_status()
+                data = response.json()
+
+                logger.info(f"📡 Backend API Response Keys: {list(data.keys())}")
+                logger.info(f"📡 Backend API Response (truncated): {str(data)[:500]}")
+
+            # Extract Template IDs from backend response (field is "templateId" with lowercase 't')
+            template_map = {}
+            templates = data.get("templates", [])
+            logger.info(f"📋 Found {len(templates)} templates in backend response")
+
+            for i, template in enumerate(templates):
+                logger.info(f"📄 Template {i}: keys={list(template.keys())}")
+                template_name = template.get("name")
+                template_id = template.get("templateId")
+
+                if template_name and template_id:
+                    template_map[template_name] = str(template_id)
+                    logger.info(f"  ✓ Backend: '{template_name}' -> {template_id}")
+                else:
+                    logger.warning(f"  ⚠️ Template {i} missing fields - name: {template_name}, id: {template_id}")
+
+            logger.info(f"📋 Fetched {len(template_map)} template IDs from backend API")
+            return template_map
+
+        except Exception as e:
+            logger.error(f"❌ Error fetching template data from backend: {e}", exc_info=True)
+            return {}
+
     async def _create_document_agent(self):
         """Agent specialized in document operations"""
         tools = self.mcp_tools.get("wesign", [])
@@ -175,14 +263,48 @@ After getting tool results, format them clearly:
 
             3. After providing information, ALWAYS suggest helpful next steps
 
+            4. SIGNATURE FIELD POSITIONING - Use the 6-Position System:
+               When user asks to add signature fields, use wesign_add_fields_by_position tool with these positions:
+               - top-left: Upper left corner
+               - center-left: Middle left side
+               - bottom-left: Lower left corner
+               - top-right: Upper right corner
+               - center-right: Middle right side
+               - bottom-right: Lower right corner
+
+               Parse natural language:
+               - "bottom left" or "left bottom" → bottom-left
+               - "top right corner" → top-right
+               - "middle right" or "center right" → center-right
+               - etc.
+
+               Field types:
+               - 1 = Signature (default)
+               - 2 = Initial
+               - 3 = Text
+               - 4 = Date
+               - 5 = Checkbox
+
+            5. PROPER WORKFLOW - NEVER invent document IDs:
+               - If user asks to add fields but no document exists, guide them to create/upload one first
+               - Use wesign_list_documents to find existing documents
+               - Use wesign_get_document_info to get document details (like number of pages)
+               - NEVER use fake IDs like "exampleDocId" - always use real IDs from tool results
+
             Your responsibilities:
             - Create self-signing documents
-            - Add signature fields to documents
+            - Add signature fields using positions (preferred) or coordinates
             - Complete signing processes
             - Save signed documents
 
+            EXAMPLES:
+            User: "Put signature bottom left on all 3 pages"
+            You: Call wesign_add_fields_by_position with position="bottom-left", numPages=3, fieldType=1
+
+            User: "Add initial field at top right on page 1"
+            You: Call wesign_add_fields_by_position with position="top-right", numPages=1, fieldType=2
+
             Guide users through the signing process step by step.
-            Explain what signature fields are needed and where they should be placed.
             """,
             model_client=self.model_client,
             tools=tools,
@@ -440,12 +562,16 @@ What would you like to do next?
                 task=full_message,
                 cancellation_token=cancellation_token
             )
+            logger.info("✅ Agent run completed, processing result...")
+            logger.info(f"📊 Result type: {type(result)}, messages: {len(result.messages) if hasattr(result, 'messages') else 'N/A'}")
 
             # Extract tool calls first
+            logger.info("🔍 Extracting tool calls from result...")
             tool_calls = self._extract_tool_calls(result)
+            logger.info(f"✅ Tool extraction completed")
             logger.info(f"🔍 Tool calls detected: {len(tool_calls) if tool_calls else 0}")
             if tool_calls:
-                logger.info(f"🔧 Tool calls: {[tc.get('name', 'unknown') for tc in tool_calls]}")
+                logger.info(f"🔧 Tool calls: {[tc.get('tool', 'unknown') for tc in tool_calls]}")
 
             # If tools were called, add a reflection step to format the response
             if tool_calls and len(tool_calls) > 0:
@@ -492,7 +618,9 @@ What would you like to do next?
                     logger.info(f"📤 Error response: {response_text[:200]}...")
                 else:
                     # SUCCESS - Extract and store template IDs if this was a list_templates call
-                    template_ids = self._extract_and_store_template_ids(tool_calls, raw_response, conversation_id)
+                    logger.info(f"🔧 ABOUT TO CALL _extract_and_store_template_ids - tool_calls: {[tc.get('tool') for tc in tool_calls]}")
+                    template_ids = await self._extract_and_store_template_ids(tool_calls, raw_response, conversation_id)
+                    logger.info(f"🔧 RETURNED FROM _extract_and_store_template_ids - result: {template_ids}")
                     if template_ids:
                         logger.info(f"📋 Extracted {len(template_ids)} template IDs for future use")
 
@@ -593,10 +721,10 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
         hebrew_chars = set(range(0x0590, 0x05FF))  # Hebrew Unicode block
         return any(ord(char) in hebrew_chars for char in text)
 
-    def _extract_and_store_template_ids(self, tool_calls: List[Dict], raw_response: Any, conversation_id: str) -> Optional[Dict[str, str]]:
+    async def _extract_and_store_template_ids(self, tool_calls: List[Dict], raw_response: Any, conversation_id: str) -> Optional[Dict[str, str]]:
         """
-        Extract template IDs from API responses and store them in conversation context.
-        This allows users to reference templates by name while we use the actual GUID internally.
+        Extract template IDs by fetching directly from backend API (bypassing MCP server).
+        The MCP server strips the TemplateId field, so we fetch full data from backend.
 
         Args:
             tool_calls: List of tool calls made
@@ -606,71 +734,40 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
         Returns:
             Dictionary of template_name -> template_id if templates were found, None otherwise
         """
+        logger.info(f"🔍 _extract_and_store_template_ids CALLED - tool_calls: {[tc.get('tool') for tc in tool_calls]}")
+
         # Check if any tool call was related to templates
         template_tools = ['wesign_list_templates', 'wesign_get_template', 'wesign_create_template']
-        is_template_call = any(call.get('tool_name') == tool_name for call in tool_calls for tool_name in template_tools)
+        is_template_call = any(call.get('tool') == tool_name for call in tool_calls for tool_name in template_tools)
+
+        logger.info(f"🔍 is_template_call: {is_template_call}, tool_calls: {tool_calls}")
 
         if not is_template_call:
             return None
 
-        logger.info("📋 Extracting template IDs from response...")
+        logger.info("📋 Fetching template IDs from backend API...")
 
-        # Initialize conversation template storage if needed
-        if conversation_id not in self.conversations:
-            self.conversations[conversation_id] = {}
-        if 'template_ids' not in self.conversations[conversation_id]:
-            self.conversations[conversation_id]['template_ids'] = {}
-
-        extracted_ids = {}
+        # Initialize template storage for this conversation if needed
+        if conversation_id not in self.template_ids:
+            self.template_ids[conversation_id] = {}
 
         try:
-            # Parse response if it's a string
-            if isinstance(raw_response, str):
-                import ast
-                response_dict = ast.literal_eval(raw_response)
+            # Fetch full template data directly from backend
+            template_map = await self._fetch_template_data_from_backend(conversation_id)
+
+            if template_map:
+                # Store in conversation context
+                self.template_ids[conversation_id].update(template_map)
+                logger.info(f"📋 Successfully fetched {len(template_map)} template IDs from backend")
+                logger.info(f"📋 Total templates in context: {len(self.template_ids[conversation_id])}")
+
+                # CRITICAL: Update MCP client with template mappings so it can replace names with GUIDs
+                self.wesign_client.update_template_mappings(conversation_id, self.template_ids[conversation_id])
+
+                return template_map
             else:
-                response_dict = raw_response
-
-            # Handle list_templates response
-            if isinstance(response_dict, dict):
-                # Check for templates array in response
-                templates = None
-                if 'templates' in response_dict:
-                    templates = response_dict['templates']
-                elif 'data' in response_dict and isinstance(response_dict['data'], list):
-                    templates = response_dict['data']
-                elif isinstance(response_dict, list):
-                    templates = response_dict
-
-                if templates and isinstance(templates, list):
-                    for template in templates:
-                        if isinstance(template, dict):
-                            # Extract name and ID (try both 'id' and 'templateId')
-                            template_name = template.get('name') or template.get('templateName')
-                            template_id = template.get('id') or template.get('templateId')
-
-                            if template_name and template_id:
-                                extracted_ids[template_name] = template_id
-                                self.conversations[conversation_id]['template_ids'][template_name] = template_id
-                                logger.info(f"  ✓ Stored: '{template_name}' -> {template_id}")
-
-            # Handle get_template or create_template response (single template)
-            elif isinstance(response_dict, dict) and ('id' in response_dict or 'templateId' in response_dict):
-                template_name = response_dict.get('name') or response_dict.get('templateName')
-                template_id = response_dict.get('id') or response_dict.get('templateId')
-
-                if template_name and template_id:
-                    extracted_ids[template_name] = template_id
-                    self.conversations[conversation_id]['template_ids'][template_name] = template_id
-                    logger.info(f"  ✓ Stored: '{template_name}' -> {template_id}")
-
-            if extracted_ids:
-                logger.info(f"📋 Successfully extracted {len(extracted_ids)} template IDs")
-                logger.info(f"📋 Total templates in context: {len(self.conversations[conversation_id]['template_ids'])}")
-            else:
-                logger.info("📋 No template IDs found in response")
-
-            return extracted_ids if extracted_ids else None
+                logger.warning("📋 No template IDs fetched from backend")
+                return None
 
         except Exception as e:
             logger.error(f"❌ Error extracting template IDs: {str(e)}")
@@ -689,12 +786,10 @@ Remember: Respond in the SAME LANGUAGE as the user's question!"""
             Preprocessed message with template IDs replaced
         """
         # Check if we have any stored template IDs
-        if conversation_id not in self.conversations:
-            return message
-        if 'template_ids' not in self.conversations[conversation_id]:
+        if conversation_id not in self.template_ids:
             return message
 
-        template_ids = self.conversations[conversation_id]['template_ids']
+        template_ids = self.template_ids[conversation_id]
         if not template_ids:
             return message
 
