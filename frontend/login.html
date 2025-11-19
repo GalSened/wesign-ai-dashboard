@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e3a8a;
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,30 +23,37 @@
 
         .login-container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 420px;
-            padding: 40px;
+            max-width: 440px;
+            padding: 48px 40px;
         }
 
         .logo {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .logo h1 {
-            font-size: 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo h1 .we {
+            color: #ef4444;
+        }
+
+        .logo h1 .sign {
+            color: #1e3a8a;
         }
 
         .logo p {
-            color: #718096;
-            font-size: 14px;
+            color: #64748b;
+            font-size: 15px;
+            font-weight: 400;
         }
 
         .form-group {
@@ -72,15 +79,48 @@
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #3b82f6;
         }
 
         .form-group input::placeholder {
             color: #cbd5e0;
         }
 
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 48px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: #64748b;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-toggle:hover {
+            color: #3b82f6;
+        }
+
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .checkbox-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             display: flex;
             align-items: center;
         }
@@ -90,10 +130,11 @@
             height: 18px;
             margin-right: 8px;
             cursor: pointer;
+            accent-color: #3b82f6;
         }
 
         .checkbox-group label {
-            color: #4a5568;
+            color: #475569;
             font-size: 14px;
             cursor: pointer;
         }
@@ -101,19 +142,20 @@
         .login-button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             color: white;
             border: none;
             border-radius: 10px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
         }
 
         .login-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
         }
 
         .login-button:disabled {
@@ -199,8 +241,8 @@
 <body>
     <div class="login-container">
         <div class="logo">
-            <h1>🤖 WeSign AI Assistant</h1>
-            <p>Powered by AutoGen Multi-Agent System</p>
+            <h1><span class="we">We</span><span class="sign">sign</span></h1>
+            <p>AI Assistant - Powered by AutoGen</p>
         </div>
 
         <!-- Demo credentials removed - use your real WeSign credentials -->
@@ -222,13 +264,24 @@
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    required
-                />
+                <div class="password-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    />
+                    <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password">
+                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="checkbox-group">
@@ -265,6 +318,26 @@
                 console.log('🔐 Found existing auth token, redirecting to chat...');
                 window.location.href = '/ui';
             }
+        });
+
+        // Password toggle functionality
+        const togglePasswordButton = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        const eyeOffIcon = document.getElementById('eye-off-icon');
+
+        togglePasswordButton.addEventListener('click', () => {
+            const isPassword = passwordInput.type === 'password';
+
+            // Toggle input type
+            passwordInput.type = isPassword ? 'text' : 'password';
+
+            // Toggle icons
+            eyeIcon.style.display = isPassword ? 'none' : 'block';
+            eyeOffIcon.style.display = isPassword ? 'block' : 'none';
+
+            // Update aria-label
+            togglePasswordButton.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
         });
 
         loginForm.addEventListener('submit', async (e) => {
