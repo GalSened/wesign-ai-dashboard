@@ -40,9 +40,7 @@ class WeSignOrchestrator:
 
         # Model client configuration
         api_key = os.getenv("OPENAI_API_KEY")
-        logger.info(f"🔑 Loading OpenAI API Key from env: {api_key[:20] if api_key else 'NOT SET'}...")
-        logger.info(f"🔑 API Key type: {type(api_key)}, length: {len(api_key) if api_key else 0}")
-        logger.info(f"🔑 Full key (masked): {api_key[:10]}...{api_key[-10:] if api_key and len(api_key) > 20 else 'TOO_SHORT'}")
+        logger.info(f"🔑 OpenAI API Key: {'SET ✓' if api_key else 'NOT SET ✗'}")
 
         self.model_client = ForcedToolModelClient(
             model="gpt-4-turbo-preview",
@@ -133,11 +131,18 @@ class WeSignOrchestrator:
             import httpx
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 # Step 1: Login to backend to get access token
+                wesign_email = os.getenv("WESIGN_EMAIL")
+                wesign_password = os.getenv("WESIGN_PASSWORD")
+
+                if not wesign_email or not wesign_password:
+                    logger.error("❌ WESIGN_EMAIL and WESIGN_PASSWORD must be set in .env file")
+                    return {}
+
                 login_response = await client.post(
                     login_url,
                     json={
-                        "email": os.getenv("WESIGN_EMAIL", "nirk@comsign.co.il"),
-                        "password": os.getenv("WESIGN_PASSWORD", "Comsign1!"),
+                        "email": wesign_email,
+                        "password": wesign_password,
                         "persistent": False
                     }
                 )
