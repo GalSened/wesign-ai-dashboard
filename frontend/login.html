@@ -65,20 +65,11 @@
             margin-bottom: 48px;
         }
 
-        .logo h1 {
-            font-size: 52px;
-            font-weight: 800;
+        .logo img {
+            width: 240px;
+            height: auto;
             margin-bottom: 16px;
-            letter-spacing: -1.5px;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-        }
-
-        .logo h1 .we {
-            color: #dc2626;
-        }
-
-        .logo h1 .sign {
-            color: #1e3a8a;
         }
 
         .logo p {
@@ -274,7 +265,8 @@
 <body>
     <div class="login-container">
         <div class="logo">
-            <h1><span class="we">We</span><span class="sign">sign</span></h1>
+            <img src="assets/images/wesign-logo.svg" alt="WeSign Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <h1 style="display:none;"><span class="we">We</span><span class="sign">sign</span></h1>
             <p>AI Assistant - Powered by AutoGen</p>
         </div>
 

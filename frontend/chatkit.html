@@ -41,6 +41,13 @@
             justify-content: space-between;
         }
 
+        .chat-header img {
+            height: 40px;
+            width: auto;
+            filter: brightness(0) invert(1);
+            margin-bottom: 4px;
+        }
+
         .chat-header h1 {
             font-size: 28px;
             font-weight: 700;
@@ -56,6 +63,12 @@
         }
 
         .chat-header p {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .chat-header .subtitle {
             font-size: 13px;
             opacity: 0.8;
             margin-top: 4px;
@@ -444,8 +457,9 @@
         <div class="chat-header">
             <div class="user-info">
                 <div>
-                    <h1><span class="we">We</span><span class="sign">sign</span> <span style="font-size: 20px; opacity: 0.8;">AI Assistant</span></h1>
-                    <p>Powered by AutoGen Multi-Agent System</p>
+                    <img src="assets/images/wesign-logo.svg" alt="WeSign Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <h1 style="display:none;"><span class="we">We</span><span class="sign">sign</span></h1>
+                    <p class="subtitle">AI Assistant - Powered by AutoGen</p>
                 </div>
                 <button class="logout-button" id="logoutButton" style="display: none;">Logout</button>
             </div>
