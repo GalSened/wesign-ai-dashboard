@@ -41,11 +41,19 @@
             justify-content: space-between;
         }
 
+        .chat-header .user-info > div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
         .chat-header img {
-            height: 40px;
+            height: 35px;
             width: auto;
-            filter: brightness(0) invert(1);
             margin-bottom: 4px;
+            background: white;
+            padding: 4px 12px;
+            border-radius: 6px;
         }
 
         .chat-header h1 {
@@ -457,7 +465,7 @@
         <div class="chat-header">
             <div class="user-info">
                 <div>
-                    <img src="/static/assets/images/wesign-logo.svg" alt="WeSign Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <img src="/static/assets/images/wesign-logo.png" alt="WeSign Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <h1 style="display:none;"><span class="we">We</span><span class="sign">sign</span></h1>
                     <p class="subtitle">AI Assistant - Powered by AutoGen</p>
                 </div>
