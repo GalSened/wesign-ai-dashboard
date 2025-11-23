@@ -4,14 +4,14 @@
 
 echo "🚀 Starting WeSign MCP Server..."
 
-cd ~/wesign-mcp-server || exit 1
+cd ~/Desktop/wesign-mcp-server || exit 1
 
 # Check if built
-if [ ! -d "build" ]; then
-    echo "⚠️  Build directory not found. Building..."
+if [ ! -d "dist" ]; then
+    echo "⚠️  Dist directory not found. Building..."
     npm run build
 fi
 
-# Start the server
+# Start the server in HTTP mode (for orchestrator)
 echo "✅ Starting MCP server on http://localhost:3000"
-npm start
+npm run start:server

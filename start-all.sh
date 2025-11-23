@@ -10,9 +10,9 @@ echo ""
 echo "🔍 Checking prerequisites..."
 
 # Check if MCP server is built
-if [ ! -d ~/wesign-mcp-server/build ]; then
+if [ ! -d ~/Desktop/wesign-mcp-server/dist ]; then
     echo "⚠️  WeSign MCP Server not built. Building..."
-    cd ~/wesign-mcp-server && npm install && npm run build
+    cd ~/Desktop/wesign-mcp-server && npm install && npm run build
     if [ $? -ne 0 ]; then
         echo "❌ Failed to build MCP server"
         exit 1
@@ -20,7 +20,7 @@ if [ ! -d ~/wesign-mcp-server/build ]; then
 fi
 
 # Check if orchestrator .env exists
-if [ ! -f ~/wesign-ai-dashboard/orchestrator/.env ]; then
+if [ ! -f ~/source/repos/wesign-ai-dashboard/orchestrator/.env ]; then
     echo "❌ Orchestrator .env file not found!"
     echo ""
     echo "Please create orchestrator/.env from orchestrator/.env.example"
@@ -46,7 +46,7 @@ run_service() {
 }
 
 # Create logs directory
-mkdir -p ~/wesign-ai-dashboard/logs
+mkdir -p ~/source/repos/wesign-ai-dashboard/logs
 
 # Start services
 echo "🎬 Starting services..."

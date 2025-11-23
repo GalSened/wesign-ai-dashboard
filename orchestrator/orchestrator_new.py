@@ -312,14 +312,40 @@ After getting tool results, format them clearly:
 
     async def _create_contact_agent(self):
         """Agent specialized in contact management"""
-        tools = self.mcp_tools.get("wesign", [])
+        # Filter to only contact-related tools
+        all_tools = self.mcp_tools.get("wesign", [])
+        contact_tool_names = [
+            "wesign_create_contact",
+            "wesign_create_contacts_bulk",
+            "wesign_list_contacts",
+            "wesign_get_contact",
+            "wesign_update_contact",
+            "wesign_delete_contact",
+            "wesign_delete_contacts_batch",
+            "wesign_list_contact_groups",
+            "wesign_get_contact_group",
+            "wesign_create_contact_group",
+            "wesign_update_contact_group",
+            "wesign_delete_contact_group",
+            "wesign_extract_signers_from_excel"
+        ]
+        tools = [tool for tool in all_tools if hasattr(tool, 'name') and tool.name in contact_tool_names]
+        logger.info(f"📞 ContactAgent created with {len(tools)} contact-specific tools")
 
         self.agents["contact"] = AssistantAgent(
             name="ContactAgent",
             description="Specialist in contact and address book management for WeSign",
             system_message="""You are a contact management specialist for WeSign.
 
-⚠️ CRITICAL: You MUST call wesign_list_contacts or other contact tools FIRST. DO NOT answer without calling a tool.
+⚠️ CRITICAL TOOL USAGE:
+- For creating contacts: Use wesign_create_contact
+- For listing contacts: Use wesign_list_contacts
+- For viewing contact details: Use wesign_get_contact
+- For updating contacts: Use wesign_update_contact
+- For bulk operations: Use wesign_create_contacts_bulk
+- For contact groups: Use wesign_create_contact_group, wesign_list_contact_groups
+
+You MUST call the appropriate tool FIRST. DO NOT answer without calling a tool.
 
 After getting tool results, format them clearly:
 - Use 👥 📧 📞 emoji headers
@@ -334,6 +360,8 @@ After getting tool results, format them clearly:
 
     async def _create_admin_agent(self):
         """Agent specialized in administrative tasks"""
+        tools = self.mcp_tools.get("wesign", [])
+
         self.agents["admin"] = AssistantAgent(
             name="AdminAgent",
             description="Administrative assistant for WeSign",
@@ -348,7 +376,7 @@ After getting tool results, format them clearly:
 - End with "What would you like to do?" and suggest 2-3 actions
 """,
             model_client=self.model_client,
-            tools=[],  # Admin agent doesn't need MCP tools
+            tools=tools,  # Add WeSign MCP tools to admin agent
         )
 
     async def _create_formatter_agent(self):

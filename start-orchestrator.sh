@@ -4,7 +4,7 @@
 
 echo "🤖 Starting AutoGen Orchestrator..."
 
-cd ~/wesign-ai-dashboard/orchestrator || exit 1
+cd ~/source/repos/wesign-ai-dashboard/orchestrator || exit 1
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
