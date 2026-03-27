@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeSign AI Assistant - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,106 +15,96 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            font-family: 'Poppins', sans-serif;
+            background-color: #ffffff;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
             overflow: hidden;
         }
 
-        body::before {
-            content: '';
-            position: absolute;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
-            top: -100px;
-            right: -100px;
-            border-radius: 50%;
+        .login-page {
+            display: flex;
+            height: 100vh;
         }
 
-        body::after {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 70%);
-            bottom: -100px;
-            left: -100px;
-            border-radius: 50%;
-        }
-
-        .login-container {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            box-shadow:
-                0 25px 50px -12px rgba(0, 0, 0, 0.25),
-                0 0 0 1px rgba(255, 255, 255, 0.1),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
-            width: 100%;
-            max-width: 460px;
-            padding: 56px 48px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 48px;
+        /* Left Section - Form */
+        .left-section {
+            width: 40%;
+            padding: 50px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
         }
 
-        .logo img {
-            width: 200px;
+        .header-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 140px;
             height: auto;
-            margin: 0 auto 16px auto;
-            display: block;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            max-height: 50px;
         }
 
-        .logo p {
-            color: #475569;
-            font-size: 15px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+        .welcome-back {
+            font-size: 36px;
+            font-weight: 700;
+            color: #061238;
+            line-height: 150%;
+            text-transform: capitalize;
+            margin-bottom: 8px;
+        }
+
+        .sub-text {
+            color: #767586;
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 150%;
+            margin-bottom: 32px;
+        }
+
+        .login-form {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            margin-top: 60px;
         }
 
         .form-group {
             margin-bottom: 20px;
+            width: 100%;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #2d3748;
+            margin-bottom: 6px;
+            color: #061238;
             font-weight: 500;
             font-size: 14px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 14px;
+            padding: 14px 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
             transition: border-color 0.3s;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: #3A8EEF;
         }
 
         .form-group input::placeholder {
-            color: #cbd5e0;
+            color: #b0b3b8;
         }
 
         .password-wrapper {
@@ -131,7 +124,7 @@
             border: none;
             cursor: pointer;
             padding: 4px;
-            color: #64748b;
+            color: #767586;
             transition: color 0.2s;
             display: flex;
             align-items: center;
@@ -139,7 +132,7 @@
         }
 
         .password-toggle:hover {
-            color: #3b82f6;
+            color: #3A8EEF;
         }
 
         .password-toggle svg {
@@ -147,55 +140,65 @@
             height: 20px;
         }
 
-        .checkbox-group {
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 24px;
+        }
+
+        .checkbox-group {
             display: flex;
             align-items: center;
+            gap: 8px;
         }
 
         .checkbox-group input[type="checkbox"] {
             width: 18px;
             height: 18px;
-            margin-right: 8px;
             cursor: pointer;
-            accent-color: #3b82f6;
+            accent-color: #3A8EEF;
         }
 
         .checkbox-group label {
-            color: #475569;
+            color: #767586;
             font-size: 14px;
             cursor: pointer;
         }
 
-        .login-button {
+        .login-btn {
             width: 100%;
-            padding: 14px;
-            background: #3b82f6;
+            padding: 15px;
+            background-color: #3A8EEF;
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 5px;
+            font-size: 18px;
             font-weight: 600;
+            font-family: 'Poppins', sans-serif;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background-color 0.2s, transform 0.1s;
         }
 
-        .login-button:hover:not(:disabled) {
-            background: #2563eb;
+        .login-btn:hover:not(:disabled) {
+            background-color: #2d7ad8;
             transform: translateY(-1px);
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
         }
 
-        .login-button:disabled {
+        .login-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
 
         .error-message {
-            background: #fed7d7;
+            background: #FCE1E9;
             color: #c53030;
             padding: 12px 16px;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
             display: none;
@@ -206,10 +209,10 @@
         }
 
         .success-message {
-            background: #c6f6d5;
+            background: #C6F7ED;
             color: #22543d;
             padding: 12px 16px;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
             display: none;
@@ -237,99 +240,190 @@
 
         .footer {
             text-align: center;
-            margin-top: 20px;
-            color: #718096;
+            margin-top: 24px;
+            color: #767586;
             font-size: 12px;
         }
 
-        .demo-credentials {
-            background: #ebf4ff;
-            border: 1px solid #bee3f8;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 13px;
+        /* Right Section - Branding */
+        .right-section {
+            width: 60%;
+            height: 100vh;
+            background-color: #F6F8FB;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
         }
 
-        .demo-credentials strong {
-            color: #2c5282;
-            display: block;
-            margin-bottom: 6px;
+        .right-section .branding {
+            text-align: center;
+            z-index: 1;
         }
 
-        .demo-credentials code {
+        .right-section .brand-logo {
+            width: 260px;
+            height: auto;
+            margin-bottom: 32px;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
+        }
+
+        .right-section .brand-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #061238;
+            margin-bottom: 12px;
+        }
+
+        .right-section .brand-subtitle {
+            font-size: 16px;
+            color: #767586;
+            line-height: 1.6;
+            max-width: 400px;
+        }
+
+        .right-section .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin-top: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            font-size: 14px;
+            font-weight: 500;
+            color: #3A8EEF;
+        }
+
+        /* Decorative circles */
+        .right-section::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: rgba(58, 142, 239, 0.06);
+            border-radius: 50%;
+            top: -80px;
+            right: -80px;
+        }
+
+        .right-section::after {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: rgba(58, 142, 239, 0.04);
+            border-radius: 50%;
+            bottom: -60px;
+            left: -60px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .login-page {
+                flex-direction: column;
+            }
+
+            .left-section {
+                width: 100%;
+                padding: 30px 20px;
+            }
+
+            .right-section {
+                display: none;
+            }
+
+            .login-form {
+                margin-top: 30px;
+            }
+
+            .welcome-back {
+                font-size: 28px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo">
-            <img src="/static/assets/images/wesign-logo.png" alt="WeSign Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-            <h1 style="display:none;"><span class="we">We</span><span class="sign">sign</span></h1>
-            <p>AI Assistant - Powered by AutoGen</p>
-        </div>
-
-        <!-- Demo credentials removed - use your real WeSign credentials -->
-
-        <div id="error-message" class="error-message"></div>
-        <div id="success-message" class="success-message"></div>
-
-        <form id="login-form">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your WeSign email"
-                    required
-                />
+    <div class="login-page">
+        <!-- Left Section - Login Form -->
+        <div class="left-section">
+            <div class="header-row">
+                <img class="logo" src="/static/assets/images/wesign-logo.png" alt="WeSign Logo" onerror="this.style.display='none';">
+                <div></div>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        required
-                    />
-                    <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password">
-                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
+            <div class="login-form">
+                <h1 class="welcome-back">Welcome Back</h1>
+                <p class="sub-text">Sign in to your AI Assistant</p>
+
+                <div id="error-message" class="error-message"></div>
+                <div id="success-message" class="success-message"></div>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="Enter your WeSign email"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-wrapper">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                required
+                            />
+                            <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password">
+                                <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="persistent" name="persistent" checked />
+                            <label for="persistent">Keep me signed in</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="login-button" class="login-btn">
+                        Sign In
                     </button>
+                </form>
+
+                <div class="footer">
+                    <p>Secure authentication via WeSign API</p>
                 </div>
             </div>
+        </div>
 
-            <div class="checkbox-group">
-                <input
-                    type="checkbox"
-                    id="persistent"
-                    name="persistent"
-                    checked
-                />
-                <label for="persistent">Keep me signed in</label>
+        <!-- Right Section - Branding -->
+        <div class="right-section">
+            <div class="branding">
+                <img class="brand-logo" src="/static/assets/images/wesign-logo.png" alt="WeSign" onerror="this.style.display='none';">
+                <h2 class="brand-title">AI-Powered Document Signing</h2>
+                <p class="brand-subtitle">Manage documents, create signatures, and handle multi-party signing workflows with your AI assistant.</p>
+                <div class="ai-badge">
+                    <span>Powered by AutoGen</span>
+                </div>
             </div>
-
-            <button type="submit" id="login-button" class="login-button">
-                Sign In to WeSign
-            </button>
-        </form>
-
-        <div class="footer">
-            <p>Secure authentication via WeSign MCP Server</p>
         </div>
     </div>
 
@@ -344,7 +438,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             const authToken = sessionStorage.getItem('wesign_auth_token') || localStorage.getItem('wesign_auth_token');
             if (authToken) {
-                console.log('🔐 Found existing auth token, redirecting to chat...');
+                console.log('Found existing auth token, redirecting to chat...');
                 window.location.href = '/ui';
             }
         });
@@ -357,15 +451,9 @@
 
         togglePasswordButton.addEventListener('click', () => {
             const isPassword = passwordInput.type === 'password';
-
-            // Toggle input type
             passwordInput.type = isPassword ? 'text' : 'password';
-
-            // Toggle icons
             eyeIcon.style.display = isPassword ? 'none' : 'block';
             eyeOffIcon.style.display = isPassword ? 'block' : 'none';
-
-            // Update aria-label
             togglePasswordButton.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
         });
 
@@ -376,24 +464,18 @@
             const password = document.getElementById('password').value;
             const persistent = document.getElementById('persistent').checked;
 
-            // Clear previous messages
             errorMessage.classList.remove('show');
             successMessage.classList.remove('show');
 
-            // Validate inputs
             if (!email || !password) {
                 showError('Please enter both email and password');
                 return;
             }
 
-            // Disable button and show loading
             loginButton.disabled = true;
             loginButton.innerHTML = '<span class="loading-spinner"></span>Signing in...';
 
             try {
-                console.log('🔐 Attempting WeSign login...');
-
-                // Call login endpoint
                 const response = await fetch(`${API_BASE_URL}/api/wesign-login`, {
                     method: 'POST',
                     headers: {
@@ -416,29 +498,22 @@
                     throw new Error(data.error || 'Login failed');
                 }
 
-                console.log('✅ Login successful:', data);
-
-                // Store auth token
                 const storage = persistent ? localStorage : sessionStorage;
                 storage.setItem('wesign_auth_token', data.authToken);
                 storage.setItem('wesign_user_name', data.user.name || email);
                 storage.setItem('wesign_user_email', email);
 
-                // Show success message
                 showSuccess(`Welcome, ${data.user.name || email}! Redirecting...`);
 
-                // Redirect to chat after short delay
                 setTimeout(() => {
                     window.location.href = '/ui';
                 }, 1500);
 
             } catch (error) {
-                console.error('❌ Login error:', error);
+                console.error('Login error:', error);
                 showError(error.message || 'Failed to sign in. Please check your credentials.');
-
-                // Re-enable button
                 loginButton.disabled = false;
-                loginButton.innerHTML = 'Sign In to WeSign';
+                loginButton.innerHTML = 'Sign In';
             }
         });
 

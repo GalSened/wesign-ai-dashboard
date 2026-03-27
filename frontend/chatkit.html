@@ -6,7 +6,7 @@
     <title>WeSign AI Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -14,197 +14,124 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --background-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-            --glass-bg: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --shadow-1: 0 8px 32px rgba(31, 38, 135, 0.37);
-            --shadow-2: 0 20px 60px rgba(0, 0, 0, 0.3);
-            --shadow-3: 0 30px 90px rgba(0, 0, 0, 0.5);
-        }
-
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--background-gradient);
+            font-family: 'Poppins', sans-serif;
+            background-color: #F6F8FB;
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
-            top: -200px;
-            right: -200px;
-            border-radius: 50%;
-            animation: float 20s infinite ease-in-out;
-        }
-
-        body::after {
-            content: '';
-            position: absolute;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(245, 87, 108, 0.2) 0%, transparent 70%);
-            bottom: -150px;
-            left: -150px;
-            border-radius: 50%;
-            animation: float 25s infinite ease-in-out reverse;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(30px, -30px) rotate(5deg); }
-            66% { transform: translate(-20px, 20px) rotate(-5deg); }
-        }
-
-        .chat-container {
-            width: 100%;
-            max-width: 1100px;
-            height: 90vh;
-            max-height: 900px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border-radius: 32px;
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--shadow-3);
-            display: flex;
             flex-direction: column;
-            overflow: hidden;
-            position: relative;
-            z-index: 1;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .chat-container:hover {
-            box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6);
-            transform: translateY(-4px);
-        }
-
+        /* ===== Navbar (matches WeSign .navbar) ===== */
         .chat-header {
-            background: var(--primary-gradient);
-            padding: 28px 36px;
+            background-color: #061238;
+            padding: 15px 30px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .chat-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-            pointer-events: none;
+            color: #fff;
         }
 
         .chat-header .user-info {
             display: flex;
             align-items: center;
-            gap: 20px;
-            position: relative;
-            z-index: 1;
+            gap: 16px;
         }
 
         .logo-container {
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
+            gap: 16px;
         }
 
         .chat-header img {
-            height: 42px;
+            height: 36px;
             width: auto;
-            margin-bottom: 8px;
-            background: rgba(255, 255, 255, 0.98);
-            padding: 6px 16px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
         }
 
-        .chat-header img:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
+        .chat-header .subtitle {
+            font-size: 13px;
+            color: #B0B3B8;
+            font-weight: 400;
         }
 
-        .chat-header h1 {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -1px;
-            color: white;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
-        .chat-header h1 .we {
-            color: #fef3c7;
+        /* Profile pill (matches WeSign .profile-info) */
+        .profile-info {
+            display: flex;
+            align-items: center;
+            background-color: #1A2A4A;
+            padding: 6px 14px;
+            border-radius: 20px;
+            gap: 10px;
         }
 
-        .chat-header h1 .sign {
-            color: white;
-        }
-
-        .chat-header p {
+        .profile-avatar {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.9);
-            margin-top: 6px;
+            color: #061238;
+            background-color: #FFFFFF;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+
+        .profile-name {
+            font-size: 13px;
             font-weight: 500;
-            letter-spacing: 0.3px;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            color: #FFFFFF;
         }
 
         .logout-button {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            padding: 12px 24px;
-            border-radius: 16px;
-            font-size: 14px;
-            font-weight: 600;
+            background: transparent;
+            color: #B0B3B8;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 18px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Poppins', sans-serif;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            z-index: 1;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
         }
 
         .logout-button:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
-        .logout-button:active {
-            transform: translateY(0);
+        /* ===== Main Chat Area ===== */
+        .chat-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 20px;
+            min-height: 0;
+            height: calc(100vh - 66px);
         }
 
         .chat-messages {
             flex: 1;
-            padding: 32px;
             overflow-y: auto;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(10px);
+            padding: 8px 0;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+            scrollbar-color: #CECED4 transparent;
         }
 
         .chat-messages::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         .chat-messages::-webkit-scrollbar-track {
@@ -212,29 +139,29 @@
         }
 
         .chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
+            background: #CECED4;
             border-radius: 10px;
-            transition: background 0.3s;
         }
 
         .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #b0b3b8;
         }
 
+        /* ===== Messages ===== */
         .message {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             display: flex;
-            animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: messageSlideIn 0.3s ease;
         }
 
         @keyframes messageSlideIn {
             from {
                 opacity: 0;
-                transform: translateY(20px) scale(0.95);
+                transform: translateY(10px);
             }
             to {
                 opacity: 1;
-                transform: translateY(0) scale(1);
+                transform: translateY(0);
             }
         }
 
@@ -244,169 +171,47 @@
 
         .message-content {
             max-width: 75%;
-            padding: 16px 20px;
-            border-radius: 20px;
+            padding: 14px 18px;
+            border-radius: 12px;
             word-wrap: break-word;
             white-space: pre-wrap;
-            position: relative;
-            font-size: 15px;
+            font-size: 14px;
             line-height: 1.6;
-            transition: all 0.3s ease;
         }
 
         .message.user .message-content {
-            background: var(--primary-gradient);
+            background-color: #3A8EEF;
             color: white;
-            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
-            font-weight: 500;
-        }
-
-        .message.user .message-content:hover {
-            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5);
-            transform: translateY(-2px);
+            border-bottom-right-radius: 4px;
         }
 
         .message.assistant .message-content {
-            background: rgba(255, 255, 255, 0.95);
-            color: #1e293b;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(10px);
-        }
-
-        .message.assistant .message-content:hover {
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-            transform: translateY(-2px);
+            background-color: #ffffff;
+            color: #061238;
+            border: 1px solid #E0E0E0;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .message.system .message-content {
-            background: rgba(147, 197, 253, 0.15);
-            backdrop-filter: blur(10px);
-            color: #93c5fd;
+            background-color: #EBF5FF;
+            color: #3A8EEF;
             max-width: 100%;
             text-align: center;
             font-size: 13px;
             font-weight: 500;
-            border: 1px solid rgba(147, 197, 253, 0.3);
+            border: 1px solid #bee3f8;
         }
 
-        .chat-input-container {
-            padding: 28px 32px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .chat-input-form {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 16px 24px;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            border-radius: 24px;
-            font-size: 15px;
-            outline: none;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            color: white;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-        }
-
-        .chat-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .chat-input:focus {
-            border-color: #667eea;
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15), 0 8px 24px rgba(0, 0, 0, 0.2);
-            transform: translateY(-2px);
-        }
-
-        .mic-button {
-            padding: 14px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            color: #93c5fd;
-            border: 2px solid rgba(147, 197, 253, 0.3);
-            border-radius: 50%;
-            width: 52px;
-            height: 52px;
-            font-size: 22px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .mic-button:hover:not(:disabled) {
-            background: rgba(147, 197, 253, 0.2);
-            border-color: #93c5fd;
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 8px 25px rgba(147, 197, 253, 0.3);
-        }
-
-        .mic-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .mic-button.recording {
-            background: var(--secondary-gradient);
-            border-color: transparent;
-            animation: recordPulse 1.5s infinite;
-            box-shadow: 0 0 30px rgba(245, 87, 108, 0.6);
-        }
-
-        @keyframes recordPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(245, 87, 108, 0.6); }
-            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(245, 87, 108, 0.8); }
-        }
-
-        .send-button {
-            padding: 16px 32px;
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            border-radius: 24px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
-            letter-spacing: 0.3px;
-        }
-
-        .send-button:hover:not(:disabled) {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6);
-        }
-
-        .send-button:active:not(:disabled) {
-            transform: translateY(-1px) scale(1);
-        }
-
-        .send-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
+        /* ===== Typing Indicator ===== */
         .typing-indicator {
             display: none;
-            padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            padding: 14px 18px;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #E0E0E0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
             width: fit-content;
-            backdrop-filter: blur(10px);
         }
 
         .typing-indicator.active {
@@ -415,16 +220,15 @@
 
         .typing-dots {
             display: flex;
-            gap: 6px;
+            gap: 5px;
         }
 
         .typing-dots span {
-            width: 10px;
-            height: 10px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 8px;
+            height: 8px;
+            background: #3A8EEF;
             border-radius: 50%;
             animation: typingBounce 1.4s infinite ease-in-out;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
         }
 
         .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -432,35 +236,24 @@
 
         @keyframes typingBounce {
             0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-12px); }
+            30% { transform: translateY(-8px); }
         }
 
+        /* ===== Welcome Card ===== */
         .welcome-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 32px;
-            margin-bottom: 28px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(100, 100, 100, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .welcome-card:hover {
-            background: white;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-            transform: translateY(-4px);
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid #E0E0E0;
         }
 
         .welcome-card h3 {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 20px;
-            font-weight: 700;
-            font-size: 20px;
-            letter-spacing: -0.5px;
+            color: #061238;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 18px;
         }
 
         .welcome-card ul {
@@ -468,163 +261,146 @@
         }
 
         .welcome-card li {
-            padding: 10px 0;
-            color: rgba(30, 30, 30, 0.85);
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .welcome-card li:hover {
-            color: rgba(10, 10, 10, 1);
-            transform: translateX(5px);
+            padding: 8px 0;
+            color: #525252;
+            font-weight: 400;
+            font-size: 14px;
         }
 
         .welcome-card li:before {
-            content: "✓ ";
-            color: #3b82f6;
-            font-weight: bold;
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #3A8EEF;
+            border-radius: 50%;
             margin-right: 12px;
-            text-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+            vertical-align: middle;
         }
 
         .welcome-card p {
-            margin-top: 20px;
-            color: rgba(80, 80, 80, 0.7);
+            margin-top: 16px;
+            color: #767586;
             font-size: 14px;
-            font-style: italic;
         }
 
-        /* File Upload Zone Styles */
+        /* ===== File Upload Zone (matches WeSign .upload-area) ===== */
         .file-upload-zone {
-            margin: 0 32px 28px 32px;
-            padding: 48px 32px;
-            border: 3px dashed rgba(147, 197, 253, 0.3);
-            border-radius: 24px;
+            margin-bottom: 20px;
+            padding: 40px 24px;
+            border: 1.5px dashed #3A8EEF;
+            border-radius: 12px;
             text-align: center;
-            background: rgba(147, 197, 253, 0.05);
-            backdrop-filter: blur(10px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #ffffff;
             cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .file-upload-zone:hover {
-            border-color: #93c5fd;
-            background: rgba(147, 197, 253, 0.1);
-            transform: scale(1.02);
-            box-shadow: 0 8px 32px rgba(147, 197, 253, 0.2);
+            background-color: #EBF5FF;
         }
 
         .file-upload-zone.drag-over {
-            border-color: #60a5fa;
-            background: rgba(96, 165, 250, 0.15);
-            transform: scale(1.03);
-            box-shadow: 0 12px 48px rgba(96, 165, 250, 0.3);
+            background-color: #EBF5FF;
+            border-color: #2d7ad8;
         }
 
-        .upload-icon {
-            font-size: 56px;
-            margin-bottom: 16px;
-            animation: floatUpDown 3s infinite ease-in-out;
-        }
-
-        @keyframes floatUpDown {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        .upload-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            background-color: rgba(58, 142, 239, 0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px auto;
+            font-size: 24px;
         }
 
         .upload-text {
-            font-size: 17px;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 10px;
-            font-weight: 600;
+            font-size: 15px;
+            color: #061238;
+            margin-bottom: 6px;
+            font-weight: 500;
         }
 
         .browse-link {
-            color: #93c5fd;
-            text-decoration: none;
-            font-weight: 700;
-            position: relative;
+            color: #3A8EEF;
+            text-decoration: underline;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
         .browse-link:hover {
-            color: #60a5fa;
-            text-shadow: 0 0 10px rgba(147, 197, 253, 0.5);
+            color: #2d7ad8;
         }
 
         .upload-hint {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 500;
+            color: #767586;
         }
 
+        /* ===== Uploaded Files List ===== */
         .uploaded-files {
-            margin: 0 32px 28px 32px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid #E0E0E0;
         }
 
         .files-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
-            font-weight: 700;
-            color: white;
-            font-size: 15px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #061238;
+            font-size: 14px;
         }
 
         .clear-files-btn {
-            background: var(--secondary-gradient);
-            color: white;
+            background-color: #FCE1E9;
+            color: #c53030;
             border: none;
-            padding: 8px 16px;
-            border-radius: 12px;
+            padding: 6px 14px;
+            border-radius: 5px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+            transition: background-color 0.2s;
         }
 
         .clear-files-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+            background-color: #f8c4d0;
         }
 
         .file-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 16px;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #F6F8FB;
+            border-radius: 8px;
+            transition: background-color 0.2s;
         }
 
         .file-item:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: translateX(4px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            background: #EDF4FC;
         }
 
         .file-info {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             flex: 1;
         }
 
         .file-icon {
-            font-size: 28px;
+            font-size: 24px;
         }
 
         .file-details {
@@ -632,76 +408,193 @@
         }
 
         .file-name {
-            font-weight: 600;
-            color: white;
-            font-size: 14px;
-            margin-bottom: 4px;
+            font-weight: 500;
+            color: #061238;
+            font-size: 13px;
+            margin-bottom: 2px;
         }
 
         .file-size {
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
+            color: #767586;
         }
 
         .file-status {
             font-size: 12px;
-            padding: 6px 12px;
-            border-radius: 10px;
-            margin-right: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-right: 8px;
             font-weight: 600;
         }
 
         .file-status.uploading {
-            background: rgba(147, 197, 253, 0.2);
-            color: #93c5fd;
+            background: #DEDFFF;
+            color: #5b5fc7;
         }
 
         .file-status.uploaded {
-            background: rgba(134, 239, 172, 0.2);
-            color: #86efac;
+            background: #C6F7ED;
+            color: #0d7a5f;
         }
 
         .file-status.error {
-            background: rgba(252, 165, 165, 0.2);
-            color: #fca5a5;
+            background: #FCE1E9;
+            color: #c53030;
         }
 
         .remove-file-btn {
-            background: rgba(239, 68, 68, 0.1);
+            background: none;
             border: none;
-            color: #fca5a5;
+            color: #767586;
             cursor: pointer;
-            font-size: 24px;
-            padding: 8px;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            width: 36px;
-            height: 36px;
+            font-size: 20px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .remove-file-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            transform: scale(1.1) rotate(90deg);
+            background: #FCE1E9;
+            color: #c53030;
+        }
+
+        /* ===== Input Area ===== */
+        .chat-input-container {
+            padding: 16px 0 8px 0;
+            border-top: 1px solid #E0E0E0;
+            background: #F6F8FB;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid #CECED4;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background: #ffffff;
+            color: #061238;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .chat-input::placeholder {
+            color: #B0B3B8;
+        }
+
+        .chat-input:focus {
+            border-color: #3A8EEF;
+            box-shadow: 0 0 0 3px rgba(58, 142, 239, 0.1);
+        }
+
+        .mic-button {
+            padding: 12px;
+            background: #ffffff;
+            color: #3A8EEF;
+            border: 1px solid #CECED4;
+            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-button:hover:not(:disabled) {
+            background: #EBF5FF;
+            border-color: #3A8EEF;
+        }
+
+        .mic-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .mic-button.recording {
+            background: #FCE1E9;
+            border-color: #c53030;
+            color: #c53030;
+            animation: recordPulse 1.5s infinite;
+        }
+
+        @keyframes recordPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .send-button {
+            padding: 12px 24px;
+            background-color: #3A8EEF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            height: 48px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background-color: #2d7ad8;
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .chat-header {
+                padding: 12px 16px;
+            }
+
+            .chat-body {
+                padding: 16px 12px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .profile-info {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="user-info">
-                <div class="logo-container">
-                    <img src="/static/assets/images/wesign-logo.png" alt="WeSign Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <h1 style="display:none;"><span class="we">We</span><span class="sign">sign</span></h1>
-                    <p class="subtitle">AI Assistant - Powered by AutoGen</p>
-                </div>
+    <div class="chat-header">
+        <div class="user-info">
+            <div class="logo-container">
+                <img src="/static/assets/images/wesign-logo.png" alt="WeSign Logo" onerror="this.style.display='none';">
+                <span class="subtitle">AI Assistant</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="profile-info" id="profileInfo" style="display: none;">
+                <div class="profile-avatar" id="profileAvatar">U</div>
+                <span class="profile-name" id="profileName">User</span>
             </div>
             <button class="logout-button" id="logoutButton" style="display: none;">Logout</button>
         </div>
+    </div>
 
+    <div class="chat-body">
         <div class="chat-messages" id="chatMessages">
             <div class="welcome-card" id="welcomeCard">
                 <h3 id="welcomeTitle">Welcome! I'm your WeSign AI Assistant</h3>
@@ -717,7 +610,7 @@
 
             <!-- File Upload Zone -->
             <div class="file-upload-zone" id="fileUploadZone">
-                <div class="upload-icon">📎</div>
+                <div class="upload-icon-wrapper">&#128206;</div>
                 <p class="upload-text">Drag and drop files here or <span class="browse-link">browse</span></p>
                 <p class="upload-hint">PDF, Word, Excel, Images (Max 25MB)</p>
                 <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" hidden>
@@ -726,7 +619,7 @@
             <!-- Uploaded Files List -->
             <div class="uploaded-files" id="uploadedFilesList" style="display: none;">
                 <div class="files-header">
-                    <span>📎 Attached Files</span>
+                    <span>Attached Files</span>
                     <button class="clear-files-btn" id="clearFilesBtn">Clear All</button>
                 </div>
                 <div class="files-list" id="filesList"></div>
@@ -736,13 +629,13 @@
         <div class="chat-input-container">
             <form class="chat-input-form" id="chatForm">
                 <button type="button" class="mic-button" id="micButton" title="Voice input (Whisper)">
-                    🎤
+                    &#127908;
                 </button>
                 <input
                     type="text"
                     class="chat-input"
                     id="chatInput"
-                    placeholder="Ask me about documents, signatures, templates... (or use voice)"
+                    placeholder="Ask me about documents, signatures, templates..."
                     autocomplete="off"
                 >
                 <button type="submit" class="send-button" id="sendButton">Send</button>
@@ -758,19 +651,28 @@
             const userEmail = sessionStorage.getItem('wesign_user_email') || localStorage.getItem('wesign_user_email');
 
             if (!authToken) {
-                console.log('🔐 No auth token found, redirecting to login...');
+                console.log('No auth token found, redirecting to login...');
                 window.location.href = '/login';
                 return;
             }
 
-            // Show logout button
+            // Show logout button and profile
             document.getElementById('logoutButton').style.display = 'block';
 
-            // Update welcome message with user's name
             if (userName) {
                 const welcomeTitle = document.getElementById('welcomeTitle');
-                welcomeTitle.textContent = `Welcome back, ${userName}! 👋`;
-                console.log(`✅ Logged in as: ${userName} (${userEmail})`);
+                welcomeTitle.textContent = `Welcome back, ${userName}!`;
+
+                // Show profile pill
+                const profileInfo = document.getElementById('profileInfo');
+                const profileAvatar = document.getElementById('profileAvatar');
+                const profileName = document.getElementById('profileName');
+
+                profileInfo.style.display = 'flex';
+                profileAvatar.textContent = userName.charAt(0).toUpperCase();
+                profileName.textContent = userName;
+
+                console.log(`Logged in as: ${userName} (${userEmail})`);
             }
         });
 
@@ -796,7 +698,9 @@
         let isRecording = false;
 
         // File upload state
-        let uploadedFiles = []; // Array of {fileId, fileName, filePath, size}
+        let uploadedFiles = [];
+
+        // File upload DOM references
         const fileUploadZone = document.getElementById('fileUploadZone');
         const fileInput = document.getElementById('fileInput');
         const uploadedFilesList = document.getElementById('uploadedFilesList');
@@ -807,7 +711,6 @@
         function createTypingIndicator() {
             const message = document.createElement('div');
             message.className = 'message assistant';
-            // Mark as loading state for test automation
             message.setAttribute('data-status', 'loading');
             message.innerHTML = `
                 <div class="typing-indicator active">
@@ -826,7 +729,6 @@
             const message = document.createElement('div');
             message.className = `message ${role}`;
 
-            // Add data-status attribute for test automation
             if (role === 'assistant') {
                 message.setAttribute('data-status', isComplete ? 'complete' : 'loading');
                 message.setAttribute('data-message-id', Date.now().toString());
@@ -839,17 +741,15 @@
             message.appendChild(messageContent);
             chatMessages.appendChild(message);
 
-            // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Dispatch custom event when message is added
             if (role === 'assistant' && isComplete) {
                 window.dispatchEvent(new CustomEvent('assistant-message-complete', {
                     detail: { messageId: message.getAttribute('data-message-id'), content }
                 }));
             }
 
-            return message; // Return message element for future updates
+            return message;
         }
 
         // Handle form submission
@@ -859,22 +759,18 @@
             const message = chatInput.value.trim();
             if (!message) return;
 
-            // Add user message
             addMessage(message, 'user');
             chatInput.value = '';
 
-            // Disable input
             chatInput.disabled = true;
             sendButton.disabled = true;
 
-            // Show typing indicator
             typingIndicator = createTypingIndicator();
             pendingAssistantMessage = typingIndicator;
             chatMessages.appendChild(typingIndicator);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                // Send to orchestrator
                 const response = await fetch(`${CONFIG.orchestratorUrl}/api/chat`, {
                     method: 'POST',
                     headers: {
@@ -892,7 +788,6 @@
                     })
                 });
 
-                // Remove typing indicator
                 if (typingIndicator) {
                     typingIndicator.remove();
                     typingIndicator = null;
@@ -904,25 +799,18 @@
                 }
 
                 const data = await response.json();
-
-                // Update conversation ID
                 conversationId = data.conversationId;
-
-                // Add assistant response with complete status
                 const assistantMessage = addMessage(data.response, 'assistant', true);
 
-                // Clear uploaded files after successful send
                 if (uploadedFiles.length > 0) {
                     clearAllFiles();
                 }
 
-                // Log tool calls if any
                 if (data.toolCalls && data.toolCalls.length > 0) {
                     console.log('Tool calls:', data.toolCalls);
                 }
 
             } catch (error) {
-                // Remove typing indicator
                 if (typingIndicator) {
                     typingIndicator.remove();
                     typingIndicator = null;
@@ -932,7 +820,6 @@
                 console.error('Chat error:', error);
                 addMessage(`Sorry, I encountered an error: ${error.message}. Please try again.`, 'system');
             } finally {
-                // Re-enable input
                 chatInput.disabled = false;
                 sendButton.disabled = false;
                 chatInput.focus();
@@ -944,23 +831,21 @@
             try {
                 const response = await fetch(`${CONFIG.orchestratorUrl}/health`);
                 if (response.ok) {
-                    console.log('✅ Connected to AutoGen orchestrator');
+                    console.log('Connected to AutoGen orchestrator');
                 } else {
-                    addMessage('⚠️ Orchestrator is not responding properly', 'system');
+                    addMessage('Orchestrator is not responding properly', 'system');
                 }
             } catch (error) {
-                console.error('❌ Cannot connect to orchestrator:', error);
-                addMessage('❌ Cannot connect to orchestrator. Please make sure it is running.', 'system');
+                console.error('Cannot connect to orchestrator:', error);
+                addMessage('Cannot connect to orchestrator. Please make sure it is running.', 'system');
             }
         }
 
         // Microphone button click handler
         micButton.addEventListener('click', async () => {
             if (isRecording) {
-                // Stop recording
                 stopRecording();
             } else {
-                // Start recording
                 await startRecording();
             }
         });
@@ -979,8 +864,6 @@
                 mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     await transcribeAudio(audioBlob);
-
-                    // Stop all audio tracks
                     stream.getTracks().forEach(track => track.stop());
                 };
 
@@ -988,11 +871,11 @@
                 isRecording = true;
                 micButton.classList.add('recording');
                 micButton.title = 'Click to stop recording';
-                chatInput.placeholder = '🔴 Recording... Click microphone to stop';
-                console.log('🎤 Recording started...');
+                chatInput.placeholder = 'Recording... Click microphone to stop';
+                console.log('Recording started...');
             } catch (error) {
-                console.error('❌ Microphone access error:', error);
-                addMessage('❌ Could not access microphone. Please check permissions.', 'system');
+                console.error('Microphone access error:', error);
+                addMessage('Could not access microphone. Please check permissions.', 'system');
             }
         }
 
@@ -1003,15 +886,15 @@
                 isRecording = false;
                 micButton.classList.remove('recording');
                 micButton.title = 'Voice input (Whisper)';
-                chatInput.placeholder = 'Ask me about documents, signatures, templates... (or use voice)';
-                console.log('🎤 Recording stopped');
+                chatInput.placeholder = 'Ask me about documents, signatures, templates...';
+                console.log('Recording stopped');
             }
         }
 
         // Transcribe audio using Whisper API
         async function transcribeAudio(audioBlob) {
             try {
-                addMessage('🎤 Transcribing audio...', 'system');
+                addMessage('Transcribing audio...', 'system');
 
                 const formData = new FormData();
                 formData.append('file', audioBlob, 'recording.webm');
@@ -1029,25 +912,21 @@
                 const transcribedText = data.text || data.transcription;
 
                 if (transcribedText) {
-                    // Remove transcribing message
                     const systemMessages = document.querySelectorAll('.message.system');
                     const lastSystemMessage = systemMessages[systemMessages.length - 1];
                     if (lastSystemMessage && lastSystemMessage.textContent.includes('Transcribing')) {
                         lastSystemMessage.remove();
                     }
 
-                    // Put transcribed text in input and submit
                     chatInput.value = transcribedText;
-                    console.log('✅ Transcription:', transcribedText);
-
-                    // Auto-submit
+                    console.log('Transcription:', transcribedText);
                     chatForm.dispatchEvent(new Event('submit'));
                 } else {
                     throw new Error('No transcription returned');
                 }
             } catch (error) {
-                console.error('❌ Transcription error:', error);
-                addMessage(`❌ Transcription failed: ${error.message}`, 'system');
+                console.error('Transcription error:', error);
+                addMessage(`Transcription failed: ${error.message}`, 'system');
             }
         }
 
@@ -1059,15 +938,14 @@
             localStorage.removeItem('wesign_auth_token');
             localStorage.removeItem('wesign_user_name');
             localStorage.removeItem('wesign_user_email');
-            console.log('🔐 Logged out');
+            console.log('Logged out');
             window.location.href = '/login';
         });
 
         // ========== File Upload Functions ==========
 
-        // Validate file
         function validateFile(file) {
-            const maxSize = 25 * 1024 * 1024; // 25MB
+            const maxSize = 25 * 1024 * 1024;
             const allowedTypes = [
                 'application/pdf',
                 'application/msword',
@@ -1090,7 +968,6 @@
             return { valid: true };
         }
 
-        // Upload file to server
         async function uploadFile(file) {
             const formData = new FormData();
             formData.append('file', file);
@@ -1119,7 +996,6 @@
             }
         }
 
-        // Add file to UI
         function addFileToUI(file, status = 'uploading') {
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
@@ -1129,14 +1005,14 @@
 
             fileItem.innerHTML = `
                 <div class="file-info">
-                    <div class="file-icon">📄</div>
+                    <div class="file-icon">&#128196;</div>
                     <div class="file-details">
                         <div class="file-name">${file.name}</div>
                         <div class="file-size">${sizeText}</div>
                     </div>
                 </div>
-                <div class="file-status ${status}">${status === 'uploading' ? '⏳' : '✓'}</div>
-                <button class="remove-file-btn" title="Remove file">×</button>
+                <div class="file-status ${status}">${status === 'uploading' ? 'Uploading...' : 'Uploaded'}</div>
+                <button class="remove-file-btn" title="Remove file">&times;</button>
             `;
 
             const removeBtn = fileItem.querySelector('.remove-file-btn');
@@ -1148,34 +1024,28 @@
             return fileItem;
         }
 
-        // Update file status in UI
         function updateFileStatus(fileName, status) {
             const fileItem = filesList.querySelector(`[data-file-name="${fileName}"]`);
             if (fileItem) {
                 const statusEl = fileItem.querySelector('.file-status');
                 statusEl.className = `file-status ${status}`;
-                statusEl.textContent = status === 'uploaded' ? '✓' : status === 'error' ? '❌' : '⏳';
+                statusEl.textContent = status === 'uploaded' ? 'Uploaded' : status === 'error' ? 'Failed' : 'Uploading...';
             }
         }
 
-        // Handle file selection
         async function handleFileSelection(files) {
             for (const file of files) {
-                // Validate file
                 const validation = validateFile(file);
                 if (!validation.valid) {
-                    addMessage(`❌ ${validation.error}`, 'system');
+                    addMessage(validation.error, 'system');
                     continue;
                 }
 
-                // Add to UI with uploading status
                 addFileToUI(file, 'uploading');
 
-                // Upload file
                 const result = await uploadFile(file);
 
                 if (result.success) {
-                    // Store file data
                     uploadedFiles.push({
                         fileId: result.fileId,
                         fileName: result.fileName,
@@ -1183,47 +1053,39 @@
                         size: result.size
                     });
 
-                    // Update UI status
                     updateFileStatus(file.name, 'uploaded');
-                    console.log(`✅ Uploaded: ${result.fileName}`);
+                    console.log(`Uploaded: ${result.fileName}`);
                 } else {
-                    // Update UI status
                     updateFileStatus(file.name, 'error');
-                    addMessage(`❌ Failed to upload "${file.name}": ${result.error}`, 'system');
+                    addMessage(`Failed to upload "${file.name}": ${result.error}`, 'system');
                 }
             }
         }
 
-        // Remove file
         function removeFile(fileName) {
-            // Remove from uploaded files array
             uploadedFiles = uploadedFiles.filter(f => f.fileName !== fileName);
 
-            // Remove from UI
             const fileItem = filesList.querySelector(`[data-file-name="${fileName}"]`);
             if (fileItem) {
                 fileItem.remove();
             }
 
-            // Hide list if no files
             if (uploadedFiles.length === 0) {
                 uploadedFilesList.style.display = 'none';
             }
 
-            console.log(`🗑️ Removed: ${fileName}`);
+            console.log(`Removed: ${fileName}`);
         }
 
-        // Clear all files
         function clearAllFiles() {
             uploadedFiles = [];
             filesList.innerHTML = '';
             uploadedFilesList.style.display = 'none';
-            console.log('🗑️ Cleared all files');
+            console.log('Cleared all files');
         }
 
         // ========== Drag and Drop Event Handlers ==========
 
-        // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             fileUploadZone.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -1231,7 +1093,6 @@
             });
         });
 
-        // Highlight drop zone when file is dragged over
         ['dragenter', 'dragover'].forEach(eventName => {
             fileUploadZone.addEventListener(eventName, () => {
                 fileUploadZone.classList.add('drag-over');
@@ -1244,7 +1105,6 @@
             });
         });
 
-        // Handle dropped files
         fileUploadZone.addEventListener('drop', async (e) => {
             const files = Array.from(e.dataTransfer.files);
             if (files.length > 0) {
@@ -1252,32 +1112,26 @@
             }
         });
 
-        // Handle click on upload zone
         fileUploadZone.addEventListener('click', () => {
             fileInput.click();
         });
 
-        // Handle file input change
         fileInput.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             if (files.length > 0) {
                 await handleFileSelection(files);
             }
-            // Reset input so same file can be selected again
             e.target.value = '';
         });
 
-        // Clear all files button
         clearFilesBtn.addEventListener('click', clearAllFiles);
 
         // Initialize
         checkConnection();
         chatInput.focus();
 
-        console.log('%c🤖 WeSign AI Assistant Ready!', 'font-size: 20px; font-weight: bold; color: #667eea;');
-        console.log('%cPowered by AutoGen Multi-Agent System', 'font-size: 14px; color: #764ba2;');
-        console.log('%c🎤 Voice Input: Click microphone to use Whisper', 'font-size: 12px; color: #667eea;');
-        console.log('%c📊 Test Automation: Use data-status attribute to detect completion', 'font-size: 12px; color: #999;');
+        console.log('WeSign AI Assistant Ready!');
+        console.log('Test Automation: Use data-status attribute to detect completion');
     </script>
 </body>
 </html>
