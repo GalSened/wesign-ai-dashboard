@@ -2,16 +2,23 @@
 
 # Start WeSign MCP Server
 
-echo "🚀 Starting WeSign MCP Server..."
+echo "Starting WeSign MCP Server..."
 
-cd ~/Desktop/wesign-mcp-server || exit 1
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MCP_DIR="$HOME/repos/wesignv3-wesign-mcp-server"
 
-# Check if built
+cd "$MCP_DIR" || { echo "MCP server not found at $MCP_DIR"; exit 1; }
+
+# Install and build if needed
+if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    npm install
+fi
+
 if [ ! -d "dist" ]; then
-    echo "⚠️  Dist directory not found. Building..."
+    echo "Building TypeScript..."
     npm run build
 fi
 
-# Start the server in HTTP mode (for orchestrator)
-echo "✅ Starting MCP server on http://localhost:3000"
+echo "Starting MCP server on http://localhost:3000"
 npm run start:server

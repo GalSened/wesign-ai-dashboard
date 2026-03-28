@@ -177,6 +177,8 @@
             white-space: pre-wrap;
             font-size: 14px;
             line-height: 1.6;
+            unicode-bidi: plaintext;
+            text-align: start;
         }
 
         .message.user .message-content {
@@ -575,6 +577,21 @@
                 display: none;
             }
         }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .chat-header { padding: 10px 16px; }
+            .chat-body { padding: 12px 8px; height: calc(100vh - 56px); }
+            .message-content { max-width: 90%; font-size: 13px; padding: 10px 14px; }
+            .profile-info { display: none; }
+            .chat-input { font-size: 16px; padding: 12px 14px; }
+            .send-button { padding: 12px 16px; font-size: 13px; }
+            .mic-button { width: 42px; height: 42px; }
+            .file-upload-zone { padding: 20px 12px; margin-bottom: 12px; }
+            .welcome-card { padding: 20px; margin-bottom: 12px; }
+            .welcome-card h3 { font-size: 16px; }
+            .welcome-card li { font-size: 13px; padding: 6px 0; }
+        }
     </style>
 </head>
 <body>
@@ -724,6 +741,18 @@
             return message;
         }
 
+        // Simple markdown to HTML (safe - no raw HTML injection)
+        function renderMarkdown(text) {
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')  // escape HTML
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')                      // **bold**
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')                                   // *italic*
+                .replace(/`(.+?)`/g, '<code>$1</code>')                                 // `code`
+                .replace(/^(\d+)\.\s+(.*)$/gm, '<li>$1. $2</li>')                       // numbered list
+                .replace(/^[-•]\s+(.*)$/gm, '<li>$1</li>')                              // bullet list
+                .replace(/\n/g, '<br>');                                                  // newlines
+        }
+
         // Add message to chat
         function addMessage(content, role, isComplete = true) {
             const message = document.createElement('div');
@@ -736,7 +765,12 @@
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
-            messageContent.textContent = content;
+            messageContent.setAttribute('dir', 'auto');
+            if (role === 'assistant') {
+                messageContent.innerHTML = renderMarkdown(content);
+            } else {
+                messageContent.textContent = content;
+            }
 
             message.appendChild(messageContent);
             chatMessages.appendChild(message);
@@ -752,7 +786,7 @@
             return message;
         }
 
-        // Handle form submission
+        // Handle form submission — SSE streaming with typewriter effect
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -761,21 +795,26 @@
 
             addMessage(message, 'user');
             chatInput.value = '';
-
             chatInput.disabled = true;
             sendButton.disabled = true;
 
-            typingIndicator = createTypingIndicator();
-            pendingAssistantMessage = typingIndicator;
-            chatMessages.appendChild(typingIndicator);
+            // Create assistant message element for streaming
+            const assistantDiv = document.createElement('div');
+            assistantDiv.className = 'message assistant';
+            assistantDiv.setAttribute('data-status', 'loading');
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.setAttribute('dir', 'auto');
+            assistantDiv.appendChild(contentDiv);
+            chatMessages.appendChild(assistantDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
+            let fullText = '';
+
             try {
-                const response = await fetch(`${CONFIG.orchestratorUrl}/api/chat`, {
+                const response = await fetch(`${CONFIG.orchestratorUrl}/api/chat/stream`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: message,
                         context: {
@@ -788,37 +827,76 @@
                     })
                 });
 
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                    typingIndicator = null;
-                    pendingAssistantMessage = null;
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.substring(6));
+
+                            if (data.type === 'status') {
+                                const statusEl = document.createElement('em');
+                                statusEl.style.color = '#767586';
+                                statusEl.textContent = data.content;
+                                contentDiv.innerHTML = '';
+                                contentDiv.appendChild(statusEl);
+                            } else if (data.type === 'token') {
+                                fullText += data.content;
+                                contentDiv.innerHTML = renderMarkdown(fullText);
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            } else if (data.type === 'done') {
+                                assistantDiv.setAttribute('data-status', 'complete');
+                                if (data.toolCalls) console.log('Tools:', data.toolCalls);
+                            } else if (data.type === 'error') {
+                                contentDiv.textContent = data.content;
+                                assistantDiv.setAttribute('data-status', 'complete');
+                            }
+                        } catch (parseErr) {
+                            // skip malformed SSE lines
+                        }
+                    }
                 }
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+                if (uploadedFiles.length > 0) clearAllFiles();
 
-                const data = await response.json();
-                conversationId = data.conversationId;
-                const assistantMessage = addMessage(data.response, 'assistant', true);
-
-                if (uploadedFiles.length > 0) {
-                    clearAllFiles();
-                }
-
-                if (data.toolCalls && data.toolCalls.length > 0) {
-                    console.log('Tool calls:', data.toolCalls);
-                }
+                // Dispatch completion event for test automation
+                window.dispatchEvent(new CustomEvent('assistant-message-complete', {
+                    detail: { content: fullText }
+                }));
 
             } catch (error) {
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                    typingIndicator = null;
-                    pendingAssistantMessage = null;
-                }
-
                 console.error('Chat error:', error);
-                addMessage(`Sorry, I encountered an error: ${error.message}. Please try again.`, 'system');
+                // Fallback to non-streaming endpoint
+                try {
+                    const fallback = await fetch(`${CONFIG.orchestratorUrl}/api/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: message,
+                            context: { userId: CONFIG.userId, companyId: CONFIG.companyId, userName: CONFIG.userName, conversationId: conversationId }
+                        })
+                    });
+                    const data = await fallback.json();
+                    fullText = data.response || '';
+                    contentDiv.innerHTML = renderMarkdown(fullText);
+                    assistantDiv.setAttribute('data-status', 'complete');
+                    conversationId = data.conversationId;
+                } catch (fallbackErr) {
+                    contentDiv.textContent = `Error: ${error.message}`;
+                    assistantDiv.setAttribute('data-status', 'complete');
+                }
             } finally {
                 chatInput.disabled = false;
                 sendButton.disabled = false;

@@ -1,3 +1,4 @@
+import json
 """
 WeSign AI Assistant Orchestrator
 FastAPI service with AutoGen multi-agent system for WeSign operations
@@ -19,7 +20,6 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import secrets
-from openai import OpenAI
 
 # Load environment variables from .env file
 # override=True ensures .env values take precedence over existing environment variables
@@ -34,17 +34,15 @@ if api_key_from_dotenv:
     print(f"[STARTUP] OpenAI API Key: {'SET ✓' if api_key_from_dotenv else 'NOT SET ✗'}")
 
 from orchestrator_new import WeSignOrchestrator
-from chatkit_store import InMemoryStore
-from chatkit_server import WeSignChatKitServer
 import config
 
 # Configure logging with DEBUG level to capture all details
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    format='{"time":"%(asctime)s","level":"%(levelname)s","module":"%(name)s","msg":"%(message)s"}',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('orchestrator.log')
+        logging.FileHandler('/tmp/wesign-ai.log')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -113,10 +111,8 @@ class ChatResponse(BaseModel):
 
 # Global state
 orchestrator: Optional[WeSignOrchestrator] = None
-chatkit_server: Optional[WeSignChatKitServer] = None
-chatkit_store: Optional[InMemoryStore] = None
-temp_files: Dict[str, str] = {}  # fileId -> file path mapping
-session_tokens: Dict[str, Dict[str, Any]] = {}  # token -> session data
+temp_files: Dict[str, str] = {}
+session_tokens: Dict[str, Dict[str, Any]] = {}
 
 # Session token configuration (use config constants)
 SESSION_TOKEN_EXPIRY_HOURS = config.SESSION_TOKEN_EXPIRY_HOURS
@@ -141,26 +137,25 @@ def is_token_expired(token_data: Dict[str, Any]) -> bool:
     except (ValueError, TypeError):
         return True  # Invalid expiration = treat as expired
 
+async def require_auth(request: Request) -> dict:
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if token not in session_tokens:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if is_token_expired(session_tokens[token]):
+        raise HTTPException(status_code=401, detail="Token expired")
+    return session_tokens[token]
+
 @app.on_event("startup")
 async def startup_event():
-    """Initialize orchestrator with native MCP support"""
-    global orchestrator, chatkit_store, chatkit_server
+    """Initialize orchestrator with direct MCP tool calling"""
+    global orchestrator
 
-    logger.info("🚀 Starting WeSign AI Assistant Orchestrator...")
-    logger.info("📦 Using native AutoGen MCP integration")
-
-    # Initialize orchestrator (it handles MCP internally now)
-    logger.info("Initializing AutoGen agents with native MCP...")
+    logger.info("Starting WeSign AI Dashboard (direct MCP)...")
     orchestrator = WeSignOrchestrator()
     await orchestrator.initialize()
-
-    # Initialize ChatKit store and server
-    logger.info("Initializing ChatKit server...")
-    chatkit_store = InMemoryStore()
-    chatkit_server = WeSignChatKitServer(chatkit_store, orchestrator)
-    logger.info("✅ ChatKit server initialized")
-
-    logger.info("✅ Orchestrator ready with native MCP support!")
+    logger.info("Orchestrator ready!")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -261,7 +256,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Upload error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/wesign-login")
 @limiter.limit(config.RATE_LIMIT_LOGIN)  # Strict limit to prevent brute force
@@ -285,7 +280,7 @@ async def wesign_login(request: Request):
 
         # Call WeSign MCP server login
         wesign_url = os.getenv("WESIGN_MCP_URL", "http://localhost:3000")
-        login_response = await orchestrator.wesign_client._http_client.post(
+        login_response = await orchestrator._http.post(
             f"{wesign_url}/execute",
             json={
                 "tool": "wesign_login",
@@ -332,7 +327,7 @@ async def wesign_login(request: Request):
         raise
     except Exception as e:
         logger.error(f"❌ Login error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 def validate_message_security(message: str) -> tuple[bool, str]:
     """
@@ -346,8 +341,11 @@ def validate_message_security(message: str) -> tuple[bool, str]:
     # Define WeSign-related keywords
     wesign_keywords = [
         "sign", "signature", "document", "template", "field", "pdf", "upload",
-        "download", "signer", "recipient", "complete", "status", "חתימה", "מסמך",
-        "תבנית", "שדה", "העלה", "הורד", "חותם", "חתום", "שלח"
+        "download", "signer", "recipient", "complete", "status", "contact",
+        "delete", "duplicate", "report", "list", "search", "create", "show",
+        "send", "page", "link", "export", "bulk", "batch", "merge",
+        "חתימה", "מסמך", "תבנית", "שדה", "העלה", "הורד", "חותם", "חתום", "שלח",
+        "הצג", "קשר", "אנשי", "תבניות", "מסמכים", "רשימה", "חפש", "צור", "עדכן", "מחק", "שכפל", "דוח"
     ]
 
     # Define sensitive data patterns to refuse
@@ -441,8 +439,9 @@ async def chat(request: Request, chat_request: ChatRequest):
 
         # Convert tool calls
         tool_calls = []
-        if result.get("tool_calls"):
-            for tc in result["tool_calls"]:
+        raw_tc = result.get("toolCalls") or result.get("tool_calls") or []
+        if raw_tc:
+            for tc in raw_tc:
                 tool_calls.append(ToolCall(
                     tool=tc.get("tool", ""),
                     action=tc.get("action", ""),
@@ -452,14 +451,46 @@ async def chat(request: Request, chat_request: ChatRequest):
 
         return ChatResponse(
             response=result["response"],
-            conversationId=result["conversation_id"],
+            conversationId=str(result.get("conversationId") or result.get("conversation_id") or ""),
             toolCalls=tool_calls if tool_calls else None,
             metadata=result.get("metadata")
         )
 
     except Exception as e:
         logger.error(f"Chat error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
+
+@app.post("/api/chat/stream")
+async def chat_stream(request: Request):
+    """SSE streaming chat endpoint — typewriter effect"""
+    try:
+        data = await request.json()
+        message = data.get("message", "")
+        context = data.get("context", {})
+
+        if not message:
+            raise HTTPException(status_code=400, detail="Message required")
+
+        is_valid, error_message = validate_message_security(message)
+        if not is_valid:
+            async def error_gen():
+                yield f"data: {json.dumps({'type': 'error', 'content': error_message})}\n\n"
+            return StreamingResponse(error_gen(), media_type="text/event-stream")
+
+        async def event_generator():
+            async for chunk in orchestrator.process_message_stream(
+                message=message,
+                user_id=context.get("userId", ""),
+                company_id=context.get("companyId", ""),
+                user_name=context.get("userName", ""),
+                conversation_id=context.get("conversationId"),
+            ):
+                yield chunk
+        return StreamingResponse(event_generator(), media_type="text/event-stream",
+                                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    except Exception as e:
+        logger.error(f"Stream error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.get("/api/tools")
 async def list_tools():
@@ -482,7 +513,7 @@ async def list_tools():
         }
     except Exception as e:
         logger.error(f"List tools error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/chatkit")
 async def chatkit_endpoint(request: Request):
@@ -563,7 +594,7 @@ async def chatkit_endpoint(request: Request):
 
     except Exception as e:
         logger.error(f"ChatKit endpoint error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/create-session")
 async def create_session(request: Request):
@@ -609,7 +640,7 @@ async def create_session(request: Request):
 
     except Exception as e:
         logger.error(f"Session creation error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/chatkit/session")
 @app.post("/api/chatkit-client-token")
@@ -659,7 +690,7 @@ async def create_chatkit_session(request: Request):
 
     except Exception as e:
         logger.error(f"ChatKit session creation error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.get("/api/chatkit-status")
 async def chatkit_status():

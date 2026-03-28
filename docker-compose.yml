@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  wesign-ai:
+    build: .
+    container_name: wesign-ai-dashboard
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env.production  # Never commit this file — contains credentials
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -87,14 +87,23 @@ ALLOWED_METHODS = ["GET", "POST", "OPTIONS"]
 ALLOWED_HEADERS = ["Content-Type", "Authorization"]
 
 # ============================================================================
-# API Configuration
+# LLM Configuration (supports OpenAI API or local Ollama)
 # ============================================================================
 
-# OpenAI model for agents
-DEFAULT_MODEL = "gpt-4-turbo-preview"
+# LLM base URL - set to Ollama endpoint for local models
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://192.168.21.5:8000/v1")
+
+# Model for tool-calling agents (fast, reliable function calling)
+TOOL_MODEL = os.getenv("TOOL_MODEL", "qwen2.5:14b")
+
+# Model for formatter agent (high quality NLG, bilingual)
+FORMATTER_MODEL = os.getenv("FORMATTER_MODEL", "qwen2.5:32b")
+
+# API key (required for OpenAI, use any string for Ollama)
+LLM_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
 
 # Temperature for LLM responses
-DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
 
 # ============================================================================
 # MCP Configuration

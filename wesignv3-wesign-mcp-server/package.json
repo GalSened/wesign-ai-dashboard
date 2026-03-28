@@ -1,0 +1,54 @@
+{
+  "name": "wesign-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for WeSign digital signature platform integration",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:server": "node dist/server.js",
+    "dev": "tsc --watch & node --watch dist/index.js",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "server",
+    "wesign",
+    "digital-signature",
+    "document-signing",
+    "pdf",
+    "e-signature"
+  ],
+  "author": "WeSign MCP Server",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "form-data": "^4.0.0",
+    "fs-extra": "^11.2.0",
+    "mime-types": "^2.1.35",
+    "node-fetch": "^3.3.2",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/fs-extra": "^11.0.4",
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "bin": {
+    "wesign-mcp-server": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ]
+}
