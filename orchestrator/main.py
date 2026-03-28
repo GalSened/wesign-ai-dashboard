@@ -256,7 +256,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Upload error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/wesign-login")
 @limiter.limit(config.RATE_LIMIT_LOGIN)  # Strict limit to prevent brute force
@@ -327,7 +327,7 @@ async def wesign_login(request: Request):
         raise
     except Exception as e:
         logger.error(f"❌ Login error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 def validate_message_security(message: str) -> tuple[bool, str]:
     """
@@ -458,7 +458,7 @@ async def chat(request: Request, chat_request: ChatRequest):
 
     except Exception as e:
         logger.error(f"Chat error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/chat/stream")
 async def chat_stream(request: Request):
@@ -490,7 +490,7 @@ async def chat_stream(request: Request):
                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
     except Exception as e:
         logger.error(f"Stream error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.get("/api/tools")
 async def list_tools():
@@ -513,7 +513,7 @@ async def list_tools():
         }
     except Exception as e:
         logger.error(f"List tools error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/chatkit")
 async def chatkit_endpoint(request: Request):
@@ -594,7 +594,7 @@ async def chatkit_endpoint(request: Request):
 
     except Exception as e:
         logger.error(f"ChatKit endpoint error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/create-session")
 async def create_session(request: Request):
@@ -640,7 +640,7 @@ async def create_session(request: Request):
 
     except Exception as e:
         logger.error(f"Session creation error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.post("/api/chatkit/session")
 @app.post("/api/chatkit-client-token")
@@ -690,7 +690,7 @@ async def create_chatkit_session(request: Request):
 
     except Exception as e:
         logger.error(f"ChatKit session creation error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
 
 @app.get("/api/chatkit-status")
 async def chatkit_status():
