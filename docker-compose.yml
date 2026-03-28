@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  wesign-ai:
+    build: .
+    container_name: wesign-ai-dashboard
+    ports:
+      - "9000:9000"
+    environment:
+      # LLM (Ollama on host)
+      - LLM_BASE_URL=http://172.17.0.1:8000/v1
+      - TOOL_MODEL=qwen2.5:14b
+      - FORMATTER_MODEL=qwen2.5:32b
+      - OPENAI_API_KEY=ollama
+      # WeSign API (K3s on host)
+      - WESIGN_API_URL=http://192.168.21.5:30080
+      - WESIGN_BACKEND_URL=http://192.168.21.5:30080
+      - WESIGN_EMAIL=avielc@comda.co.il
+      - WESIGN_PASSWORD=Alon1109!
+      # Server
+      - HOST=0.0.0.0
+      - PORT=9000
+      - ALLOWED_ORIGINS=http://localhost:9000,http://192.168.21.5:9000
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
