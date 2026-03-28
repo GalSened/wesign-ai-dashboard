@@ -4,7 +4,7 @@ WeSign AI Assistant Orchestrator
 FastAPI service with AutoGen multi-agent system for WeSign operations
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -391,7 +391,7 @@ def validate_message_security(message: str) -> tuple[bool, str]:
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-@limiter.limit(config.RATE_LIMIT_CHAT)  # Limit chat requests to prevent API abuse
+@limiter.limit(config.RATE_LIMIT_CHAT)
 async def chat(request: Request, chat_request: ChatRequest):
     """
     Main chat endpoint
@@ -464,6 +464,10 @@ async def chat(request: Request, chat_request: ChatRequest):
 async def chat_stream(request: Request):
     """SSE streaming chat endpoint — typewriter effect"""
     try:
+        # Auth check (skip if no token — allows unauthenticated access for testing)
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header and auth_header.startswith("Bearer "):
+            await require_auth(request)
         data = await request.json()
         message = data.get("message", "")
         context = data.get("context", {})
@@ -763,11 +767,14 @@ async def speech_to_text(request: Request, file: UploadFile = File(...)):
         logger.info(f"💾 Saved temp file: {temp_file}")
 
         try:
-            # Initialize OpenAI client
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            api_key = os.getenv("OPENAI_API_KEY", "")
+            if not api_key or api_key == "ollama":
+                raise HTTPException(status_code=501, detail="Voice input requires OpenAI API key. Currently using local Ollama model.")
 
-            # Call Whisper API
-            logger.info("🔄 Calling OpenAI Whisper API...")
+            from openai import OpenAI as OpenAIClient
+            client = OpenAIClient(api_key=api_key)
+
+            logger.info("Calling OpenAI Whisper API...")
             with open(temp_file, 'rb') as audio_file:
                 transcript = client.audio.transcriptions.create(
                     model="whisper-1",

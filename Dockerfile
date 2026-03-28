@@ -35,9 +35,9 @@ COPY frontend/ /app/frontend/
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-EXPOSE 9000
+EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:9000/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

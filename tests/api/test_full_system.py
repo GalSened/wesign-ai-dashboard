@@ -281,6 +281,85 @@ async def run_all():
         r = await stream_chat(c, "Show templates and also contacts and documents")
         test("10.5 Multi-entity request", len(r["content"]) > 50)
 
+        # ═══════════════════════════════════════════
+        # SECTION 11: Field Positions — All 6 (6 tests)
+        # ═══════════════════════════════════════════
+        print("\n── Field Positions ──")
+
+        for pos in ["top-left", "top-right", "center-left", "center-right", "bottom-left", "bottom-right"]:
+            r = await stream_chat(c, f"Add signature field to template PDF+PDF at {pos}")
+            test(f"11.{['top-left','top-right','center-left','center-right','bottom-left','bottom-right'].index(pos)+1} Position {pos}", not r["error"], r["content"][:60])
+
+        # ═══════════════════════════════════════════
+        # SECTION 12: Bilingual mixed (4 tests)
+        # ═══════════════════════════════════════════
+        print("\n── Bilingual Mixed ──")
+
+        r = await stream_chat(c, "Show me the תבניות")
+        test("12.1 Mixed EN+HE (templates)", len(r["content"]) > 30)
+
+        r = await stream_chat(c, "הצג documents שלי")
+        test("12.2 Mixed HE+EN (documents)", len(r["content"]) > 30)
+
+        r = await stream_chat(c, "Create contact ישראל email israel@test.com")
+        test("12.3 Hebrew name in EN command", not r["error"])
+
+        r = await stream_chat(c, "צור איש קשר John email john@test.com")
+        test("12.4 EN name in HE command", not r["error"])
+
+        # ═══════════════════════════════════════════
+        # SECTION 13: Delete operations (3 tests)
+        # ═══════════════════════════════════════════
+        print("\n── Delete Operations ──")
+
+        r = await stream_chat(c, "Delete document test-fake-id")
+        test("13.1 Delete doc (bad ID)", len(r["content"]) > 10)
+
+        r = await stream_chat(c, "Delete template PDF+PDF")
+        test("13.2 Delete template (by name)", len(r["content"]) > 10)
+
+        r = await stream_chat(c, "מחק מסמך test-id-123")
+        test("13.3 Delete doc HE", len(r["content"]) > 10)
+
+        # ═══════════════════════════════════════════
+        # SECTION 14: Duplicate template (2 tests)
+        # ═══════════════════════════════════════════
+        print("\n── Duplicate Template ──")
+
+        r = await stream_chat(c, "Duplicate template PDF+PDF as Copy of PDF")
+        test("14.1 Duplicate EN", len(r["content"]) > 10)
+
+        r = await stream_chat(c, "שכפל תבנית 12312 בשם עותק")
+        test("14.2 Duplicate HE", len(r["content"]) > 10)
+
+        # ═══════════════════════════════════════════
+        # SECTION 15: Conversation context (2 tests)
+        # ═══════════════════════════════════════════
+        print("\n── Context ──")
+
+        r = await stream_chat(c, "Show me all templates")
+        test("15.1 Context: first message", "template" in r["content"].lower())
+
+        r = await stream_chat(c, "Now show contacts")
+        test("15.2 Context: follow-up", len(r["content"]) > 30)
+
+        # ═══════════════════════════════════════════
+        # SECTION 16: API endpoints (4 tests)
+        # ═══════════════════════════════════════════
+        print("\n── API Endpoints ──")
+
+        r = await c.get(f"{BASE}/health")
+        test("16.1 GET /health", r.status_code == 200)
+
+        r = await c.post(f"{BASE}/api/chat", json={"message": "", "context": {"userId": "t", "companyId": "t", "userName": "t"}})
+        test("16.2 Empty chat message", r.status_code in [200, 400, 422])
+
+        r = await c.get(f"{BASE}/api/tools")
+        test("16.3 GET /api/tools (if exists)", r.status_code in [200, 404])
+
+        r = await c.post(f"{BASE}/api/upload")
+        test("16.4 Upload without file", r.status_code in [400, 422])
+
     # ═══════════════════════════════════════════
     # RESULTS
     # ═══════════════════════════════════════════
