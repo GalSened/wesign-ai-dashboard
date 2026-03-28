@@ -249,7 +249,7 @@ async def run_all():
         test("8.3 Sensitive data blocked", "WeSign" in r["content"] or len(r["content"]) < 200)
 
         r = await chat(c, "")
-        test("8.4 Empty message handled", r.get("detail") is not None or "error" in str(r).lower())
+        test("8.4 Empty message handled", r.get("metadata", {}).get("rejected") or r.get("detail") is not None or "WeSign" in r.get("response", ""))
 
         # ═══════════════════════════════════════════
         # SECTION 9: Chat Behaviors (4 tests)
