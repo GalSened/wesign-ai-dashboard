@@ -90,6 +90,13 @@ RE_SEND_TO_EMAIL = re.compile(
     re.IGNORECASE
 )
 
+# Matches "send to [name]" (without email) — needs SmartContext resolution
+RE_SEND_TO_NAME = re.compile(
+    r"(?:send|שלח)\s+(?:a\s+)?(?:document|doc|מסמך|template|תבנית)?\s*"
+    r"(?:to\s+|ל)\s*[\"']?(.+?)[\"']?\s*$",
+    re.IGNORECASE
+)
+
 # ── Position normalization ──────────────────────────────────────────
 
 _POS_MAP = {
@@ -210,7 +217,7 @@ def classify(message: str, template_cache: Dict[str, str] = None) -> Optional[Tu
     if m:
         return ("wesign_get_page_count", {"templateId": _resolve(m.group(1).strip(), cache)})
 
-    # 8. Send to email
+    # 8. Send to email (direct)
     m = RE_SEND_TO_EMAIL.search(msg)
     if m:
         email = m.group(1)
@@ -218,6 +225,15 @@ def classify(message: str, template_cache: Dict[str, str] = None) -> Optional[Tu
             "signerMeans": email,
             "signerName": email.split("@")[0],
         })
+
+    # 9. Send to name (needs SmartContext resolution — mark for async resolution)
+    m = RE_SEND_TO_NAME.search(msg)
+    if m:
+        signer_ref = m.group(1).strip()
+        if signer_ref and len(signer_ref) > 1:
+            return ("__smart_send__", {
+                "signerReference": signer_ref,
+            })
 
     # Not confident — LLM fallback
     return None
